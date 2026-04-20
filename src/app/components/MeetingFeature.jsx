@@ -16,7 +16,7 @@ const slides = [
       "https://www.gstatic.com/meet/user_edu_scheduling_light_b352efa017e4f8f1ffda43e847820322.svg",
     title: "Plan ahead",
     description:
-      "Click New meeting to schedule meetings in Google Calendar and send invites to participants",
+      "Click New meeting to schedule meetings in Blumen Calendar and send invites to participants",
   },
   {
     image:

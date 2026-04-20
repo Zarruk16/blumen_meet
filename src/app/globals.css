@@ -11,3 +11,12 @@ body {
     --radius: 0.5rem;
   }
 }
+
+/* Remove box shadow from video container */
+.video-container {
+  box-shadow: none !important;
+}
+
+.video-container * {
+  box-shadow: none !important;
+}

@@ -89,47 +89,41 @@ const VideoMeeting = () => {
  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
       <div
-        className={`flex-grow flex flex-col md:flex-row relative ${
-          isInMeeting ? "h-screen" : ""
+        className={`relative ${
+          isInMeeting ? "flex-1 h-full" : "h-2/5 md:h-[calc(100vh-4rem)]"
         }`}
       >
         <div
           ref={containerRef}
-          className="video-container flex-grow"
-          style={{ height: isInMeeting ? "100%" : "calc(100vh - 4rem)" }}
+          className="video-container w-full h-full min-h-[200px] md:min-h-[300px]"
         ></div>
       </div>
       {!isInMeeting && (
-        <div className="flex flex-col">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
-              Meeting Info
-            </h2>
-            <p className="mb-4 text-gray-600 dark:text-gray-300">
-              Participant - {session?.user?.name || "You"}
-            </p>
-            <Button
-              onClick={endMeeting}
-              className="w-full bg-red-500 hover:bg-red-200 text-white hover:text-black"
-            >
-              End Meeting
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-gray-200 dark:bg-gray-700">
+          <div className="flex flex-col flex-1">
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-3 md:p-6">
+                <h2 className="text-lg md:text-2xl font-bold mb-2 md:mb-4 text-gray-800 dark:text-white">
+                  Meeting Info
+                </h2>
+                <p className="mb-2 md:mb-4 text-gray-600 dark:text-gray-300">
+                  Participant - {session?.user?.name || "You"}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 p-3 md:p-6 bg-gray-200 dark:bg-gray-700">
             <div className="text-center">
               <Image
                 src="/images/videoQuality.jpg"
                 alt="Feature 1"
-                width={150}
-                height={150}
-                className="mx-auto mb-2 rounded-full"
+                width={120}
+                height={120}
+                className="mx-auto mb-2 rounded-full w-20 h-20 md:w-24 md:h-24"
               />
-              <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-white">
+              <h3 className="text-sm md:text-base font-semibold mb-1 text-gray-800 dark:text-white">
                 HD Video Quality
               </h3>
-               <p className='text-sm text-gray-600 dark:text-gray-300'>
+               <p className='text-xs text-gray-600 dark:text-gray-300 line-clamp-2'>
                 Experience crystal clear video calls
                </p>
             </div>
@@ -137,14 +131,14 @@ const VideoMeeting = () => {
               <Image
                 src="/images/screenShare.jpg"
                 alt="Feature 1"
-                width={150}
-                height={150}
-                className="mx-auto mb-2 rounded-full"
+                width={120}
+                height={120}
+                className="mx-auto mb-2 rounded-full w-20 h-20 md:w-24 md:h-24"
               />
-              <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-white">
+              <h3 className="text-sm md:text-base font-semibold mb-1 text-gray-800 dark:text-white">
                  Screen Sharing
               </h3>
-               <p className='text-sm text-gray-600 dark:text-gray-300'>
+               <p className='text-xs text-gray-600 dark:text-gray-300 line-clamp-2'>
                   Easily  share your screen with participant
                </p>
             </div>
@@ -152,19 +146,28 @@ const VideoMeeting = () => {
               <Image
                 src="/images/videoSecure.jpg"
                 alt="Feature 1"
-                width={150}
-                height={150}
-                className="mx-auto mb-2 rounded-full"
+                width={120}
+                height={120}
+                className="mx-auto mb-2 rounded-full w-20 h-20 md:w-24 md:h-24"
               />
-              <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-white">
+              <h3 className="text-sm md:text-base font-semibold mb-1 text-gray-800 dark:text-white">
                  Secure Meetings
               </h3>
-               <p className='text-sm text-gray-600 dark:text-gray-300'>
+               <p className='text-xs text-gray-600 dark:text-gray-300 line-clamp-2'>
                    Your meetings are protected and private
                </p>
             </div>
            </div>
-        </div>
+            </div>
+            <div className="p-3 md:p-6 bg-white dark:bg-gray-800 border-t">
+              <Button
+                onClick={endMeeting}
+                className="w-full bg-red-500 hover:bg-red-600 text-white"
+              >
+                End Meeting
+              </Button>
+            </div>
+          </div>
       )}
     </div>
   );

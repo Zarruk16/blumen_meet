@@ -37,7 +37,7 @@ const Header = () => {
             <Link href='/' className='flex items-center space-x-2'>
             <Video className='w-8 h-8 text-blue-500'/>
             <span className='hidden md:block text-xl font-semibold text-gray-800 dark:text-white'>
-              Google Meet
+              Blumen meet
             </span>
             </Link>
         </div>

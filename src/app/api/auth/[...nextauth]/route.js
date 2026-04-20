@@ -13,7 +13,14 @@ export const authOptions = {
     }),
     GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        authorization: {
+          params: {
+            prompt: "consent",
+            access_type: "offline",
+            response_type: "code"
+          }
+        }
       })
   ],
   callbacks:{
@@ -34,20 +41,27 @@ export const authOptions = {
       },
 
       async signIn({user,profile}) {
-        await dbConnect();
-        let dbUser = await User.findOne({email: user.email})
+        try {
+          await dbConnect();
+          let dbUser = await User.findOne({email: user.email})
 
-        //if user not found create a new user
-        if(!dbUser){
-            dbUser = await User.create({
-                name:profile.name,
-                email:profile.email,
-                profilePicture:profile.picture,
-                isVerified:profile.email_verified ? true :false
-            })
+          //if user not found create a new user
+          if(!dbUser){
+              dbUser = await User.create({
+                  name:profile.name,
+                  email:profile.email,
+                  profilePicture:profile.picture,
+                  isVerified:profile.email_verified ? true :false
+              })
+          }
+           user.id = dbUser._id.toString();
+           return true;
+        } catch (error) {
+          console.error('Error in signIn callback:', error);
+          // Allow sign in even if database operations fail
+          user.id = user.email; // fallback ID
+          return true;
         }
-         user.id = dbUser._id.toString();
-         return true;
       }
   },
   session:{
@@ -56,7 +70,8 @@ export const authOptions = {
   },
   pages:{
     signIn: '/user-auth',
-  }
+  },
+  debug: process.env.NODE_ENV === 'development'
 }
 
 const handle = NextAuth(authOptions)
