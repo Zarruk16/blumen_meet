@@ -33,7 +33,7 @@ const page = () => {
       {isLoading && <Loader/>}
       <div className="hidden w-1/2 bg-gray-100 lg:block">
         <Image
-          src="/images/meet_image.jpg"
+          src="/images/meet_image.png"
           width={1080}
           height={1080}
           alt="login_image"

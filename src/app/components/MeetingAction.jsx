@@ -24,7 +24,11 @@ const MeetingAction = () => {
 
   const handleCreateMeetingForLater =() =>{
     const roomId=  uuidv4();
-    const url = `${baseUrl}/video-meeting/${roomId}`
+    const hostKey = uuidv4();
+    try {
+      localStorage.setItem(`hostKey:${roomId}`, hostKey);
+    } catch {}
+    const url = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
     setGeneratedMeetingUrl(url)
     setIsDialogOpen(true);
     toast.success("meeting link created successfully")
@@ -33,10 +37,14 @@ const MeetingAction = () => {
   const handleJoinMeeting = () =>{
     if(meetingLink){
       setIsLoading(true);
-      const formattedLink = meetingLink.includes("http")
-      ?meetingLink
-      : `${baseUrl}/video-meeting/${meetingLink}` 
-      router.push(formattedLink)
+      const raw = meetingLink.trim();
+      const formattedLink = raw.includes("http")
+        ? raw
+        : `${baseUrl}/join/${raw}`;
+      const url = new URL(formattedLink, baseUrl);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const last = pathParts[pathParts.length - 1];
+      router.push(`/join/${last}`);
       toast.info('joining meeting...')
     }else {
       toast.error('please enter a valid link or code ')
@@ -47,7 +55,11 @@ const MeetingAction = () => {
   const handleStartMeeting = () =>{
     setIsLoading(true);
      const roomId=  uuidv4();
-    const meetingUrl = `${baseUrl}/video-meeting/${roomId}`
+    const hostKey = uuidv4();
+    try {
+      localStorage.setItem(`hostKey:${roomId}`, hostKey);
+    } catch {}
+    const meetingUrl = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
     router.push(meetingUrl)
     toast.info('joining meeting...')
   }
