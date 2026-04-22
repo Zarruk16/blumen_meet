@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { useSession } from 'next-auth/react'
 import { Copy, Link2, LinkIcon, Plus, Video } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -13,24 +14,86 @@ import Loader from './Loader'
 const MeetingAction = () => {
   const [isLoading,setIsLoading] = useState()
   const [isDialogOpen,setIsDialogOpen] = useState(false)
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false)
   const [baseUrl,setBaseUrl] = useState("")
   const router = useRouter()
   const [generatedMeetingUrl,setGeneratedMeetingUrl] = useState("")
   const [meetingLink,setMeetingLink] = useState("")
+  const [scheduledAt, setScheduledAt] = useState("")
+  const [recurrence, setRecurrence] = useState("none")
+  const [weeklyDay, setWeeklyDay] = useState("1") // 1-5 => Mon-Fri
+  const [weeklyTime, setWeeklyTime] = useState("")
+  const { data: session } = useSession();
 
   useEffect(() =>{
     setBaseUrl(window.location.origin)
   },[])
 
-  const handleCreateMeetingForLater =() =>{
+  const createMeetingRecord = async ({ roomId, hostKey, kind, startAt, recurrence }) => {
+    const hostUserId = session?.user?.id || "";
+    const response = await fetch("/api/meetings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId,
+        hostKey,
+        kind,
+        startAt,
+        recurrence,
+        hostUserId,
+        hostName: session?.user?.name || "",
+      }),
+    });
+    if (!response.ok) throw new Error("create_meeting_failed");
+  };
+
+  const handleCreateMeetingForLater = async () =>{
+    if (recurrence !== "weekly" && !scheduledAt) {
+      toast.error("Please choose meeting date and time");
+      return;
+    }
+    if (recurrence === "weekly" && (!weeklyDay || !weeklyTime)) {
+      toast.error("Please choose weekly day and time");
+      return;
+    }
+
+    const toNextWeekdayDateTimeISO = (dayIndex, timeValue) => {
+      const now = new Date();
+      const [h, m] = timeValue.split(":").map(Number);
+      const target = new Date(now);
+      target.setHours(h, m, 0, 0);
+      // JS getDay(): Sun=0, Mon=1 ... Sat=6
+      const currentDay = now.getDay();
+      let delta = Number(dayIndex) - currentDay;
+      if (delta < 0 || (delta === 0 && target <= now)) delta += 7;
+      target.setDate(now.getDate() + delta);
+      return target.toISOString();
+    };
+
+    const effectiveStartAt =
+      recurrence === "weekly"
+        ? toNextWeekdayDateTimeISO(weeklyDay, weeklyTime)
+        : new Date(scheduledAt).toISOString();
+
     const roomId=  uuidv4();
     const hostKey = uuidv4();
     try {
       localStorage.setItem(`hostKey:${roomId}`, hostKey);
-    } catch {}
+      await createMeetingRecord({
+        roomId,
+        hostKey,
+        kind: "scheduled",
+        startAt: effectiveStartAt,
+        recurrence,
+      });
+    } catch {
+      toast.error("Could not schedule meeting");
+      return;
+    }
     const url = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
     setGeneratedMeetingUrl(url)
     setIsDialogOpen(true);
+    setIsScheduleDialogOpen(false);
     toast.success("meeting link created successfully")
   }
 
@@ -42,9 +105,7 @@ const MeetingAction = () => {
         ? raw
         : `${baseUrl}/join/${raw}`;
       const url = new URL(formattedLink, baseUrl);
-      const pathParts = url.pathname.split("/").filter(Boolean);
-      const last = pathParts[pathParts.length - 1];
-      router.push(`/join/${last}`);
+      router.push(`${url.pathname}${url.search}`);
       toast.info('joining meeting...')
     }else {
       toast.error('please enter a valid link or code ')
@@ -52,13 +113,22 @@ const MeetingAction = () => {
   }
 
 
-  const handleStartMeeting = () =>{
+  const handleStartMeeting = async () =>{
     setIsLoading(true);
      const roomId=  uuidv4();
     const hostKey = uuidv4();
     try {
       localStorage.setItem(`hostKey:${roomId}`, hostKey);
-    } catch {}
+      await createMeetingRecord({
+        roomId,
+        hostKey,
+        kind: "instant",
+      });
+    } catch {
+      setIsLoading(false);
+      toast.error("Could not start meeting");
+      return;
+    }
     const meetingUrl = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
     router.push(meetingUrl)
     toast.info('joining meeting...')
@@ -80,7 +150,7 @@ const MeetingAction = () => {
               </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={handleCreateMeetingForLater}>
+            <DropdownMenuItem onClick={() => setIsScheduleDialogOpen(true)}>
               <Link2 className='w-4 h-4 mr-2'/>
               create a meeting for later
             </DropdownMenuItem>
@@ -110,6 +180,67 @@ const MeetingAction = () => {
 
          </div>
     </div>
+    <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+      <DialogContent className="max-w-sm rounded-lg p-6">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-semibold">
+            Schedule meeting
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Select the date and time when participants can join automatically.
+          </p>
+          <Input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            disabled={recurrence === "weekly"}
+          />
+          <div>
+            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Repeat</label>
+            <select
+              className="w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value)}
+            >
+              <option value="none">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          {recurrence === "weekly" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Day</label>
+                <select
+                  className="w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                  value={weeklyDay}
+                  onChange={(e) => setWeeklyDay(e.target.value)}
+                >
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Time</label>
+                <Input
+                  type="time"
+                  value={weeklyTime}
+                  onChange={(e) => setWeeklyTime(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          <Button className="w-full" onClick={handleCreateMeetingForLater}>
+            Create scheduled link
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-sm rounded-lg p-6">
         <DialogHeader>

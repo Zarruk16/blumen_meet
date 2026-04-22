@@ -20,6 +20,8 @@ export default function JoinMeeting() {
   const [devices, setDevices] = useState({ cameras: [], mics: [] });
   const [selected, setSelected] = useState({ cameraId: "", micId: "" });
   const [permissionError, setPermissionError] = useState("");
+  const [meetingMeta, setMeetingMeta] = useState(null);
+  const [metaLoading, setMetaLoading] = useState(true);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -35,6 +37,21 @@ export default function JoinMeeting() {
     const resolved = (fromSession || fromStorage).trim();
     if (resolved) setName(resolved);
   }, [roomID, session, status]);
+
+  useEffect(() => {
+    const loadMeeting = async () => {
+      try {
+        const res = await fetch(`/api/meetings/${roomID}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMeetingMeta(data);
+        }
+      } finally {
+        setMetaLoading(false);
+      }
+    };
+    loadMeeting();
+  }, [roomID]);
 
   const stopStream = () => {
     if (streamRef.current) {
@@ -102,7 +119,7 @@ export default function JoinMeeting() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraEnabled, micEnabled]);
 
-  const onJoin = () => {
+  const onJoin = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
       toast.error("Please enter your name");
@@ -121,11 +138,36 @@ export default function JoinMeeting() {
         localStorage.setItem(`hostKey:${roomID}`, hostKey);
       } catch {}
     }
-    router.push(
-      `${meetingUrl}?ready=1&name=${encodeURIComponent(trimmed)}&cam=${cameraEnabled ? "1" : "0"}&mic=${micEnabled ? "1" : "0"}${
-        hostKey ? `&hostKey=${encodeURIComponent(hostKey)}` : ""
-      }`
-    );
+    try {
+      const auth = await fetch(`/api/meetings/${roomID}/authorize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hostKey }),
+      });
+      const payload = await auth.json();
+      if (!auth.ok || !payload.allowed) {
+        if (payload?.reason === "ended") {
+          toast.error("This meeting link has expired.");
+        } else if (payload?.reason === "scheduled_not_started_time") {
+          const startText = payload?.startAt ? new Date(payload.startAt).toLocaleString() : "scheduled time";
+          toast.info(`Meeting starts at ${startText}.`);
+        } else if (payload?.reason === "waiting_for_host") {
+          toast.info("Waiting for host to start the meeting.");
+        } else {
+          toast.error("Unable to join this meeting.");
+        }
+        setIsJoining(false);
+        return;
+      }
+      router.push(
+        `${meetingUrl}?ready=1&name=${encodeURIComponent(trimmed)}&cam=${cameraEnabled ? "1" : "0"}&mic=${micEnabled ? "1" : "0"}${
+          hostKey ? `&hostKey=${encodeURIComponent(hostKey)}` : ""
+        }`
+      );
+    } catch {
+      setIsJoining(false);
+      toast.error("Unable to join this meeting.");
+    }
   };
 
   return (
@@ -183,6 +225,13 @@ export default function JoinMeeting() {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Confirm your name and choose your camera/microphone.
             </p>
+            {metaLoading ? (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Loading meeting details...</p>
+            ) : meetingMeta?.kind === "scheduled" && meetingMeta?.startAt ? (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Scheduled for: {new Date(meetingMeta.startAt).toLocaleString()}
+              </p>
+            ) : null}
 
             {permissionError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">

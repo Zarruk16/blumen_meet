@@ -20,7 +20,10 @@ async function dbConnect () {
 
         const object = {
             bufferCommands:false,
-            serverSelectionTimeoutMS:5000
+            serverSelectionTimeoutMS:5000,
+            connectTimeoutMS: 5000,
+            socketTimeoutMS: 15000,
+            dbName: process.env.MONGODB_DB || "google-meet",
         }
 
         //create a new connection and return promise and store in the cahce object

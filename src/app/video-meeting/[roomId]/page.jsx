@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Link2, Smile } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const VideoMeeting = () => {
   const params= useParams();
@@ -24,6 +25,7 @@ const VideoMeeting = () => {
   const reactionTimeoutsRef = useRef([]);
   const participantIdsRef = useRef([]);
   const joinToastShownRef = useRef(false);
+  const presenceIdRef = useRef("");
 
   const ready = searchParams?.get("ready") === "1";
   const nameFromQuery = searchParams?.get("name") || "";
@@ -203,8 +205,10 @@ const VideoMeeting = () => {
           joinToastShownRef.current = true;
         }
         setIsInMeeting(true);
+        reportPresence("join");
        },
        onLeaveRoom:() =>{
+        reportPresence("leave");
         endMeeting();
        },
      });
@@ -221,6 +225,50 @@ const VideoMeeting = () => {
   joinToastShownRef.current = false;
   router.push('/')
  }
+
+ const getPresenceId = () => {
+  if (presenceIdRef.current) return presenceIdRef.current;
+  let existing = "";
+  try {
+    existing = sessionStorage.getItem(`presence:${roomID}`) || "";
+    if (!existing) {
+      existing = uuidv4();
+      sessionStorage.setItem(`presence:${roomID}`, existing);
+    }
+  } catch {
+    existing = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  presenceIdRef.current = existing;
+  return existing;
+ };
+
+ const reportPresence = async (action) => {
+  const participantId = getPresenceId();
+  try {
+    await fetch(`/api/meetings/${roomID}/presence`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, participantId }),
+      keepalive: action === "leave",
+    });
+  } catch {}
+ };
+
+ useEffect(() => {
+  const onBeforeUnload = () => {
+    const participantId = getPresenceId();
+    navigator.sendBeacon(
+      `/api/meetings/${roomID}/presence`,
+      new Blob([JSON.stringify({ action: "leave", participantId })], {
+        type: "application/json",
+      })
+    );
+  };
+  window.addEventListener("beforeunload", onBeforeUnload);
+  return () => {
+    window.removeEventListener("beforeunload", onBeforeUnload);
+  };
+ }, [roomID]);
 
  const sendReaction = async (emoji) => {
   if (!zp || !isInMeeting) return;

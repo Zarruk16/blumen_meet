@@ -6,6 +6,7 @@ import Loader from "./components/Loader";
 import Header from "./components/Header";
 import MeetingAction from "./components/MeetingAction";
 import MeetingFeature from "./components/MeetingFeature";
+import ScheduledMeetings from "./components/ScheduledMeetings";
 
 export default function Home() {
   const [isLoding,setIsLoading] = useState(true);
@@ -42,6 +43,9 @@ export default function Home() {
                     Connect, collaborate and celebrate from anywhere with Blumen Meet
                     </p>
                       <MeetingAction/>
+                      {status === "authenticated" && (
+                        <ScheduledMeetings hostUserId={session?.user?.id} />
+                      )}
                 </div>
                 <div className="md:w-1/2 ">
                   <MeetingFeature/>
