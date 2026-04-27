@@ -132,17 +132,13 @@ export default function JoinMeeting() {
     } catch {
       // ignore storage failures (private mode, etc.)
     }
-    const hostKey = (searchParams?.get("hostKey") || "").trim();
-    if (hostKey) {
-      try {
-        localStorage.setItem(`hostKey:${roomID}`, hostKey);
-      } catch {}
-    }
+    const hostKey =
+      typeof window !== "undefined" ? (localStorage.getItem(`hostKey:${roomID}`) || "").trim() : "";
     try {
       const auth = await fetch(`/api/meetings/${roomID}/authorize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostKey }),
+        body: JSON.stringify({ hostKey, hostUserId: session?.user?.id || "" }),
       });
       const payload = await auth.json();
       if (!auth.ok || !payload.allowed) {
@@ -160,9 +156,7 @@ export default function JoinMeeting() {
         return;
       }
       router.push(
-        `${meetingUrl}?ready=1&name=${encodeURIComponent(trimmed)}&cam=${cameraEnabled ? "1" : "0"}&mic=${micEnabled ? "1" : "0"}${
-          hostKey ? `&hostKey=${encodeURIComponent(hostKey)}` : ""
-        }`
+        `${meetingUrl}?ready=1&name=${encodeURIComponent(trimmed)}&cam=${cameraEnabled ? "1" : "0"}&mic=${micEnabled ? "1" : "0"}`
       );
     } catch {
       setIsJoining(false);

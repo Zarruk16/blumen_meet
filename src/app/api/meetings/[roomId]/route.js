@@ -17,6 +17,7 @@ export async function GET(_req, { params }) {
       status: meeting.status,
       startAt: meeting.startAt,
       hostName: meeting.hostName || "",
+      hostUserId: meeting.hostUserId || "",
       endedAt: meeting.endedAt || null,
     });
   } catch {

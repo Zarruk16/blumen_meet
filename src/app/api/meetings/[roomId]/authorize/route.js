@@ -15,7 +15,7 @@ const getCurrentOccurrenceStart = (startAt, recurrence, now) => {
 
 export async function POST(req, { params }) {
   try {
-    const { hostKey } = await req.json();
+    const { hostKey, hostUserId } = await req.json();
     await dbConnect();
 
     const meeting = await Meeting.findOne({ roomId: params.roomId });
@@ -26,7 +26,9 @@ export async function POST(req, { params }) {
       return NextResponse.json({ allowed: false, reason: "ended" }, { status: 410 });
     }
 
-    const isHost = Boolean(hostKey) && hostKey === meeting.hostKey;
+    const isHostByKey = Boolean(hostKey) && hostKey === meeting.hostKey;
+    const isHostByUserId = Boolean(hostUserId) && Boolean(meeting.hostUserId) && hostUserId === meeting.hostUserId;
+    const isHost = isHostByKey || isHostByUserId;
     if (meeting.status === "ended" && meeting.recurrence === "none") {
       return NextResponse.json({ allowed: false, reason: "ended" }, { status: 410 });
     }

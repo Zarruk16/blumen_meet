@@ -6,7 +6,7 @@ import { Copy, Play, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
-export default function ScheduledMeetings({ hostUserId }) {
+export default function ScheduledMeetings({ hostUserId, hostName }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -14,12 +14,30 @@ export default function ScheduledMeetings({ hostUserId }) {
   const baseUrl = useMemo(() => (typeof window !== "undefined" ? window.location.origin : ""), []);
 
   const load = async () => {
-    if (!hostUserId) return;
+    if (!hostUserId && !hostName) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/meetings?hostUserId=${encodeURIComponent(hostUserId)}`);
+      // Backfill legacy meetings that were created without hostUserId.
+      if (hostUserId && hostName) {
+        await fetch("/api/meetings/migrate-host", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hostUserId, hostName }),
+        });
+      }
+
+      const params = new URLSearchParams();
+      if (hostUserId) params.set("hostUserId", hostUserId);
+      if (hostName) params.set("hostName", hostName);
+      const res = await fetch(`/api/meetings?${params.toString()}`);
       const data = await res.json();
-      setItems(Array.isArray(data?.meetings) ? data.meetings : []);
+      const meetings = Array.isArray(data?.meetings) ? data.meetings : [];
+      meetings.sort((a, b) => {
+        const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+      setItems(meetings);
     } catch {
       toast.error("Couldn't load scheduled meetings");
     } finally {
@@ -30,10 +48,10 @@ export default function ScheduledMeetings({ hostUserId }) {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hostUserId]);
+  }, [hostUserId, hostName]);
 
   const copyLink = async (meeting) => {
-    const url = `${baseUrl}/join/${meeting.roomId}?hostKey=${meeting.hostKey}`;
+    const url = `${baseUrl}/join/${meeting.roomId}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Meeting link copied");
@@ -66,7 +84,7 @@ export default function ScheduledMeetings({ hostUserId }) {
       });
       if (!res.ok) throw new Error();
       toast.success("Meeting started");
-      router.push(`/join/${meeting.roomId}?hostKey=${encodeURIComponent(meeting.hostKey)}`);
+      router.push(`/join/${meeting.roomId}`);
     } catch {
       toast.error("Couldn't start meeting");
     }

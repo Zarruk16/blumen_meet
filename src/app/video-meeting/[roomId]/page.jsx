@@ -29,7 +29,6 @@ const VideoMeeting = () => {
 
   const ready = searchParams?.get("ready") === "1";
   const nameFromQuery = searchParams?.get("name") || "";
-  const hostKeyFromQuery = (searchParams?.get("hostKey") || "").trim();
   const cameraOn = searchParams?.get("cam") !== "0";
   const micOn = searchParams?.get("mic") !== "0";
 
@@ -63,10 +62,10 @@ const VideoMeeting = () => {
 
     if (!joinedRef.current) {
       joinedRef.current = true;
-      joinMeeting(containerRef.current, displayName, { cameraOn, micOn, hostKeyFromQuery });
+      joinMeeting(containerRef.current, displayName, { cameraOn, micOn });
       return;
     }
-  },[status, session?.user?.name, roomID, ready, nameFromQuery, cameraOn, micOn, hostKeyFromQuery])
+  },[status, session?.user?.id, session?.user?.name, roomID, ready, nameFromQuery, cameraOn, micOn])
 
 
 
@@ -104,16 +103,21 @@ const VideoMeeting = () => {
 
      // Determine host synchronously (no state race).
      let isHost = false;
+     let localHostKey = "";
      if (typeof window !== "undefined") {
-       const incoming = (opts?.hostKeyFromQuery || "").trim();
-       if (incoming) {
-         try {
-           localStorage.setItem(`hostKey:${roomID}`, incoming);
-         } catch {}
-       }
-       const stored = (localStorage.getItem(`hostKey:${roomID}`) || "").trim();
-       isHost = Boolean(stored) && (!incoming || incoming === stored);
+       localHostKey = (localStorage.getItem(`hostKey:${roomID}`) || "").trim();
      }
+     try {
+       const auth = await fetch(`/api/meetings/${roomID}/authorize`, {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ hostKey: localHostKey, hostUserId: session?.user?.id || "" }),
+       });
+       if (auth.ok) {
+         const payload = await auth.json();
+         isHost = Boolean(payload?.isHost);
+       }
+     } catch {}
      setIsHost(isHost);
      const participantName = isHost ? `HOST • ${displayName}` : displayName;
 

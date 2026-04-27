@@ -90,7 +90,7 @@ const MeetingAction = () => {
       toast.error("Could not schedule meeting");
       return;
     }
-    const url = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
+    const url = `${baseUrl}/join/${roomId}`
     setGeneratedMeetingUrl(url)
     setIsDialogOpen(true);
     setIsScheduleDialogOpen(false);
@@ -129,7 +129,7 @@ const MeetingAction = () => {
       toast.error("Could not start meeting");
       return;
     }
-    const meetingUrl = `${baseUrl}/join/${roomId}?hostKey=${hostKey}`
+    const meetingUrl = `${baseUrl}/join/${roomId}`
     router.push(meetingUrl)
     toast.info('joining meeting...')
   }

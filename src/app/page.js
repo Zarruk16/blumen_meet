@@ -44,7 +44,7 @@ export default function Home() {
                     </p>
                       <MeetingAction/>
                       {status === "authenticated" && (
-                        <ScheduledMeetings hostUserId={session?.user?.id} />
+                        <ScheduledMeetings hostUserId={session?.user?.id} hostName={session?.user?.name} />
                       )}
                 </div>
                 <div className="md:w-1/2 ">

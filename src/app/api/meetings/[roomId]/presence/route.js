@@ -29,8 +29,8 @@ export async function POST(req, { params }) {
     meeting.activeParticipantIds = Array.from(current);
 
     if (action === "leave" && meeting.activeParticipantIds.length === 0) {
-      if (meeting.kind === "scheduled" && (meeting.recurrence || "none") !== "none") {
-        // Recurring meetings should reopen on their next occurrence.
+      if (meeting.kind === "scheduled") {
+        // Scheduled meetings remain reusable until explicitly cancelled.
         meeting.status = "scheduled";
         meeting.endedAt = null;
       } else {

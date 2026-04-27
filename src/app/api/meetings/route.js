@@ -6,30 +6,27 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const hostUserId = (searchParams.get("hostUserId") || "").trim();
+    const hostName = (searchParams.get("hostName") || "").trim();
 
-    if (!hostUserId) {
-      return NextResponse.json({ error: "hostUserId is required" }, { status: 400 });
+    if (!hostUserId && !hostName) {
+      return NextResponse.json({ error: "hostUserId or hostName is required" }, { status: 400 });
     }
 
     await dbConnect();
 
-    const now = new Date();
     const meetings = await Meeting.find({
-      hostUserId,
+      ...(hostUserId && hostName
+        ? { $or: [{ hostUserId }, { hostName }] }
+        : hostUserId
+          ? { hostUserId }
+          : { hostName }),
       kind: "scheduled",
       cancelled: { $ne: true },
-      $or: [
-        // Recurring meetings should always remain in Scheduled Meetings until cancelled.
-        { recurrence: { $in: ["daily", "weekly"] } },
-        // One-time scheduled meetings are shown while upcoming/active.
-        {
-          recurrence: { $in: ["none", null] },
-          status: { $in: ["scheduled", "active"] },
-          startAt: { $ne: null, $gte: new Date(now.getTime() - 60 * 60 * 1000) }, // keep last 1h
-        },
-      ],
+      // Scheduled meetings remain visible until explicitly cancelled.
+      status: { $in: ["scheduled", "active", "ended"] },
     })
-      .sort({ startAt: 1 })
+      // Newest created scheduled meetings first.
+      .sort({ createdAt: -1, startAt: 1 })
       .limit(50)
       .lean();
 
@@ -37,6 +34,7 @@ export async function GET(req) {
       meetings: meetings.map((m) => ({
         roomId: m.roomId,
         startAt: m.startAt,
+        createdAt: m.createdAt,
         recurrence: m.recurrence || "none",
         status: m.status,
         hostKey: m.hostKey,
