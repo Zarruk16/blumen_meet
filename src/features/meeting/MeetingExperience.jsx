@@ -13,6 +13,7 @@ import { useMeetingKeyboard } from "./hooks/useMeetingKeyboard";
 import { useRecording } from "./hooks/useRecording";
 import { useRaisedHands } from "./hooks/useRaisedHands";
 import { useMeetingLifecycle } from "./hooks/useMeetingLifecycle";
+import { useHostMuteListener } from "./hooks/useHostMuteListener";
 import { RaisedHandsBanner } from "@/components/meeting/RaisedHandsBanner";
 import { MeetingVideoStage } from "./components/MeetingVideoStage";
 import { MeetingTopBar } from "./components/MeetingTopBar";
@@ -108,6 +109,7 @@ export function MeetingExperience({
   const { raisedHands } = useRaisedHands();
   const { isRecording, toggleRecording, stopRecordingIfActive } = useRecording(roomId, isHost);
   useConnectionQuality();
+  useHostMuteListener();
 
   const { transferHostOnLeave, endMeetingForAll } = useMeetingLifecycle({
     roomId,
@@ -240,7 +242,7 @@ export function MeetingExperience({
         <ChatPanel />
       </SidePanel>
       <SidePanel open={activePanel === PANELS.PARTICIPANTS} title="Participants" onClose={closePanel}>
-        <ParticipantsPanel isHost={isHost} />
+        <ParticipantsPanel isHost={isHost} roomId={roomId} hostUserId={hostUserId} />
       </SidePanel>
       <SidePanel open={activePanel === PANELS.INFO} title="Meeting info" onClose={closePanel}>
         <MeetingInfoPanel roomId={roomId} inviteUrl={inviteUrl} isHost={isHost} />
