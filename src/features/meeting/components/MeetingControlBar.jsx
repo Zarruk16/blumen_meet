@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Mic,
   MicOff,
@@ -21,10 +20,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMeetingStore, PANELS } from "@/store/meetingStore";
-import { REACTION_EMOJIS } from "../constants";
 import { ControlButton } from "@/components/meeting/ControlButton";
 import { FloatingDock, DockGroup, DockDivider } from "@/components/meeting/FloatingDock";
 import { MobileControls } from "@/components/meeting/MobileControls";
+import { ReactionPicker } from "@/components/meeting/ReactionPicker";
 import { cn } from "@/lib/utils";
 
 function DesktopControls({
@@ -100,42 +99,21 @@ function DesktopControls({
           <Users className="h-5 w-5" />
         </ControlButton>
 
-        <div className="relative">
-          <ControlButton
-            label="Reactions"
-            active={reactionsOpen}
-            onClick={() => onReactionsOpenChange?.(!reactionsOpen)}
-          >
-            <Smile className="h-5 w-5" />
-          </ControlButton>
-          <AnimatePresence>
-            {reactionsOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute bottom-full left-1/2 z-50 mb-3 flex -translate-x-1/2 gap-1 rounded-2xl border border-white/15 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-xl"
-              >
-                {REACTION_EMOJIS.map((emoji) => (
-                  <motion.button
-                    key={emoji}
-                    type="button"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.92 }}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-lg hover:bg-white/10"
-                    onClick={() => onSelectReaction?.(emoji)}
-                  >
-                    {emoji}
-                  </motion.button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <ControlButton
+          label="Reactions"
+          active={reactionsOpen}
+          onClick={() => onReactionsOpenChange?.(!reactionsOpen)}
+        >
+          <Smile className="h-5 w-5" />
+        </ControlButton>
 
-        <ControlButton label="Raise hand" active={handRaised} onClick={onToggleHand}>
-          <Hand className="h-5 w-5" />
+        <ControlButton
+          label={handRaised ? "Lower hand" : "Raise hand"}
+          active={handRaised}
+          onClick={onToggleHand}
+          className={handRaised ? "!bg-amber-500/90 !border-amber-400/50 !text-white" : ""}
+        >
+          <Hand className={cn("h-5 w-5", handRaised && "text-amber-100")} />
         </ControlButton>
 
         {isHost && recordingAvailable && (
@@ -183,10 +161,18 @@ function DesktopControls({
 }
 
 export function MeetingControlBar(props) {
+  const { reactionsOpen, onReactionsOpenChange, onSelectReaction } = props;
   return (
     <>
       <MobileControls {...props} />
       <DesktopControls {...props} />
+      <div className="hidden lg:block">
+        <ReactionPicker
+          open={reactionsOpen}
+          onClose={() => onReactionsOpenChange?.(false)}
+          onSelect={onSelectReaction}
+        />
+      </div>
     </>
   );
 }

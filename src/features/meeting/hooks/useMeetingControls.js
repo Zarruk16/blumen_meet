@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { RoomEvent, Track } from "livekit-client";
 
 export function useMeetingControls() {
   const room = useRoomContext();
@@ -31,21 +31,62 @@ export function useMeetingControls() {
     room?.disconnect(true);
   }, [room]);
 
-  const toggleHandRaise = useCallback(async () => {
-    if (!localParticipant) return;
-    const raised = localParticipant.attributes?.handRaised === "true";
-    const next = !raised;
-    try {
-      await localParticipant.setAttributes({ handRaised: next ? "true" : "false" });
-    } catch {
-      await room?.localParticipant?.publishData(
-        new TextEncoder().encode(JSON.stringify({ type: "hand", raised: next })),
-        { reliable: true }
-      );
-    }
-  }, [localParticipant, room]);
+  const [handRaised, setHandRaised] = useState(false);
 
-  const handRaised = localParticipant?.attributes?.handRaised === "true";
+  useEffect(() => {
+    setHandRaised(localParticipant?.attributes?.handRaised === "true");
+  }, [localParticipant?.attributes?.handRaised]);
+
+  useEffect(() => {
+    if (!room) return;
+    const syncLocal = () => {
+      setHandRaised(room.localParticipant?.attributes?.handRaised === "true");
+    };
+    room.on(RoomEvent.ParticipantAttributesChanged, syncLocal);
+    return () => room.off(RoomEvent.ParticipantAttributesChanged, syncLocal);
+  }, [room]);
+
+  const broadcastHandState = useCallback(
+    async (raised) => {
+      if (!localParticipant) return;
+      const payload = new TextEncoder().encode(
+        JSON.stringify({
+          type: "hand",
+          raised,
+          identity: localParticipant.identity,
+          name: localParticipant.name || localParticipant.identity,
+        })
+      );
+      try {
+        await localParticipant.publishData(payload, { reliable: true });
+      } catch {
+        // ignore
+      }
+    },
+    [localParticipant]
+  );
+
+  const setHandRaise = useCallback(
+    async (raised) => {
+      if (!localParticipant) return;
+      setHandRaised(raised);
+      try {
+        await localParticipant.setAttributes({ handRaised: raised ? "true" : "false" });
+      } catch {
+        // attributes may be unavailable on some plans
+      }
+      await broadcastHandState(raised);
+    },
+    [localParticipant, broadcastHandState]
+  );
+
+  const toggleHandRaise = useCallback(async () => {
+    await setHandRaise(!handRaised);
+  }, [handRaised, setHandRaise]);
+
+  const lowerHand = useCallback(async () => {
+    if (handRaised) await setHandRaise(false);
+  }, [handRaised, setHandRaise]);
 
   return {
     micEnabled,
@@ -56,6 +97,7 @@ export function useMeetingControls() {
     toggleCam,
     toggleScreenShare,
     toggleHandRaise,
+    lowerHand,
     leaveCall,
     localParticipant,
   };

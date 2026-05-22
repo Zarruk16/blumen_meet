@@ -17,9 +17,15 @@ export function ParticipantsPanel({ isHost }) {
     if (p) await p.setMicrophoneEnabled(false);
   };
 
+  const sorted = [...participants].sort((a, b) => {
+    const aHand = a.attributes?.handRaised === "true" ? 1 : 0;
+    const bHand = b.attributes?.handRaised === "true" ? 1 : 0;
+    return bHand - aHand;
+  });
+
   return (
     <div className="overflow-y-auto p-3 space-y-1">
-      {participants.map((p) => {
+      {sorted.map((p) => {
         const name = p.name || p.identity;
         const isLocal = p.isLocal;
         const hostLabel = name?.startsWith("HOST");
@@ -38,6 +44,9 @@ export function ParticipantsPanel({ isHost }) {
                 <p className="truncate text-sm font-medium text-white">
                   {name}
                   {isLocal && <span className="text-zinc-500"> (you)</span>}
+                  {handRaised && (
+                    <span className="ml-1.5 text-[10px] font-medium text-amber-300">· hand raised</span>
+                  )}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {hostLabel && <Crown className="h-3 w-3 text-amber-400" />}

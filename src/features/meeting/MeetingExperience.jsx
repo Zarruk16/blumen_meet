@@ -10,6 +10,8 @@ import { useMeetingControls } from "./hooks/useMeetingControls";
 import { useConnectionQuality } from "./hooks/useConnectionQuality";
 import { useMeetingKeyboard } from "./hooks/useMeetingKeyboard";
 import { useRecording } from "./hooks/useRecording";
+import { useRaisedHands } from "./hooks/useRaisedHands";
+import { RaisedHandsBanner } from "@/components/meeting/RaisedHandsBanner";
 import { MeetingVideoStage } from "./components/MeetingVideoStage";
 import { MeetingTopBar } from "./components/MeetingTopBar";
 import { MeetingControlBar } from "./components/MeetingControlBar";
@@ -97,6 +99,7 @@ export function MeetingExperience({
   );
 
   const controls = useMeetingControls();
+  const { raisedHands } = useRaisedHands();
   const { isRecording, toggleRecording, stopRecordingIfActive } = useRecording(roomId, isHost);
   useConnectionQuality();
 
@@ -153,6 +156,17 @@ export function MeetingExperience({
           onCopyInvite={onCopyInvite}
           onLeave={handleLeave}
         />
+        {raisedHands.length > 0 && (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-[28] flex justify-center px-3
+              bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(6rem+env(safe-area-inset-bottom))]"
+          >
+            <RaisedHandsBanner
+              raisedHands={raisedHands}
+              onLowerHand={controls.lowerHand}
+            />
+          </div>
+        )}
         <MeetingControlBar
           micEnabled={controls.micEnabled}
           camEnabled={controls.camEnabled}

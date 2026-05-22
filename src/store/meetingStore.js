@@ -18,7 +18,6 @@ export const useMeetingStore = create((set) => ({
   activePanel: PANELS.NONE,
   settingsOpen: false,
   isFullscreen: false,
-  handRaised: false,
   isRecording: false,
   recordingId: null,
   recordingStartedAt: null,
@@ -43,7 +42,6 @@ export const useMeetingStore = create((set) => ({
     })),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
-  setHandRaised: (handRaised) => set({ handRaised }),
   setRecording: ({ isRecording, recordingId, recordingStartedAt }) =>
     set({
       isRecording,
@@ -57,7 +55,6 @@ export const useMeetingStore = create((set) => ({
       activePanel: PANELS.NONE,
       settingsOpen: false,
       isFullscreen: false,
-      handRaised: false,
       isRecording: false,
       recordingId: null,
       recordingStartedAt: null,
