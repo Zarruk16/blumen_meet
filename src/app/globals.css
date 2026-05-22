@@ -11,3 +11,10 @@ body {
     --radius: 0.5rem;
   }
 }
+
+/* LiveKit conference fills the meeting viewport */
+.lk-room-container,
+.lk-video-conference {
+  height: 100%;
+  min-height: 0;
+}

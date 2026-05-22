@@ -1,78 +1,15 @@
-import dbConnect from "@/lib/dbConnect";
-import User from "@/models/User";
-import NextAuth from "next-auth"
-import GithubProvider from "next-auth/providers/github"
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import { applyAuthUrlFromRequest } from "@/lib/resolveAuthUrl";
 
-export const authOptions = {
-  // Configure one or more authentication providers
-  providers: [
-    GithubProvider({
-      clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET,
-    }),
-    GoogleProvider({
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        authorization: {
-          params: {
-            prompt: "consent",
-            access_type: "offline",
-            response_type: "code"
-          }
-        }
-      })
-  ],
-  callbacks:{
-    async jwt({token,user,account}){
+const handler = NextAuth(authOptions);
 
-        if(user){
-            token.id = user.id;
-        }
-        if(account){
-            token.accessToken= account.access_token;
-        }
-
-        return token;
-    },
-    async session({ session, token }) {
-         session.user.id= token.id;
-        return session
-      },
-
-      async signIn({user,profile}) {
-        try {
-          await dbConnect();
-          let dbUser = await User.findOne({email: user.email})
-
-          //if user not found create a new user
-          if(!dbUser){
-              dbUser = await User.create({
-                  name:profile.name,
-                  email:profile.email,
-                  profilePicture:profile.picture,
-                  isVerified:profile.email_verified ? true :false
-              })
-          }
-           user.id = dbUser._id.toString();
-           return true;
-        } catch (error) {
-          console.error('Error in signIn callback:', error);
-          // Allow sign in even if database operations fail
-          user.id = user.email; // fallback ID
-          return true;
-        }
-      }
-  },
-  session:{
-    strategy: 'jwt',
-    maxAge : 90 * 24 * 60 * 60
-  },
-  pages:{
-    signIn: '/user-auth',
-  },
-  debug: process.env.NODE_ENV === 'development'
+async function authHandler(req, context) {
+  const authUrl = applyAuthUrlFromRequest(req);
+  if (authUrl && process.env.NODE_ENV === "development") {
+    console.log("[next-auth] Using URL:", authUrl);
+  }
+  return handler(req, context);
 }
 
-const handle = NextAuth(authOptions)
-export {handle as POST , handle as GET};
+export { authHandler as GET, authHandler as POST };
