@@ -15,11 +15,15 @@ export default function LiveKitMeetingRoom({
   cameraOn,
   micOn,
   isHost,
+  participantIdentity,
+  hostUserId,
   inviteUrl,
   onConnected,
   onDisconnected,
   onLeaveRoom,
   onCopyInvite,
+  onHostChange,
+  onReportPresence,
 }) {
   const [meetingStartedAt, setMeetingStartedAt] = useState(null);
 
@@ -52,12 +56,16 @@ export default function LiveKitMeetingRoom({
           roomId={roomId}
           meetingTitle={`Meeting ${roomId?.slice(0, 8) || ""}`}
           isHost={isHost}
+          participantIdentity={participantIdentity}
+          hostUserId={hostUserId}
           inviteUrl={inviteUrl}
           startedAt={meetingStartedAt}
           onConnected={onConnected}
           onDisconnected={onDisconnected}
           onLeaveRoom={onLeaveRoom}
           onCopyInvite={onCopyInvite}
+          onHostChange={onHostChange}
+          onReportPresence={onReportPresence}
         />
       </LiveKitRoom>
     </div>

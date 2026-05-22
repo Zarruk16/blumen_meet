@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Meeting from "@/models/Meeting";
+import {
+  getOwnerUserId,
+  isMeetingLinkExpired,
+  resolveHostAccess,
+} from "@/lib/meetingHost";
 
 const getCurrentOccurrenceStart = (startAt, recurrence, now) => {
   const base = new Date(startAt);
@@ -22,16 +27,21 @@ export async function POST(req, { params }) {
     if (!meeting) {
       return NextResponse.json({ allowed: false, error: "Meeting not found" }, { status: 404 });
     }
-    if (meeting.cancelled) {
+
+    if (isMeetingLinkExpired(meeting)) {
       return NextResponse.json({ allowed: false, reason: "ended" }, { status: 410 });
     }
 
-    const isHostByKey = Boolean(hostKey) && hostKey === meeting.hostKey;
-    const isHostByUserId = Boolean(hostUserId) && Boolean(meeting.hostUserId) && hostUserId === meeting.hostUserId;
-    const isHost = isHostByKey || isHostByUserId;
-    if (meeting.status === "ended" && meeting.recurrence === "none") {
-      return NextResponse.json({ allowed: false, reason: "ended" }, { status: 410 });
+    const uid = (hostUserId || "").trim();
+    const ownerId = getOwnerUserId(meeting);
+
+    if (uid && ownerId && uid === ownerId) {
+      meeting.currentHostUserId = ownerId;
+      if (!meeting.ownerUserId) meeting.ownerUserId = ownerId;
+      await meeting.save();
     }
+
+    const { isHost, currentHostId } = resolveHostAccess(meeting, { hostKey, hostUserId });
 
     if (meeting.kind === "scheduled" && meeting.status !== "active") {
       const now = new Date();
@@ -40,7 +50,6 @@ export async function POST(req, { params }) {
         : null;
       const startReached = occurrenceStart ? now >= occurrenceStart : false;
 
-      // Scheduled meeting cannot be started before its scheduled time.
       if (!startReached) {
         return NextResponse.json(
           { allowed: false, reason: "scheduled_not_started_time", startAt: occurrenceStart || meeting.startAt },
@@ -48,7 +57,6 @@ export async function POST(req, { params }) {
         );
       }
 
-      // At/after scheduled time, only host can start (activate) the meeting.
       if (isHost) {
         meeting.status = "active";
         meeting.endedAt = null;
@@ -90,6 +98,9 @@ export async function POST(req, { params }) {
     return NextResponse.json({
       allowed: true,
       isHost,
+      isOwner: Boolean(uid && ownerId && uid === ownerId),
+      ownerUserId: ownerId,
+      currentHostUserId: currentHostId,
       status: meeting.status,
       startAt: meeting.startAt,
       kind: meeting.kind,
@@ -99,4 +110,3 @@ export async function POST(req, { params }) {
     return NextResponse.json({ allowed: false, error: "Failed to authorize" }, { status: 500 });
   }
 }
-

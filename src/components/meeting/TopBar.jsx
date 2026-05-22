@@ -169,8 +169,9 @@ export function TopBar({
           <button
             type="button"
             onClick={onLeave}
-            className="flex h-9 min-h-[36px] items-center justify-center gap-1.5 rounded-xl bg-red-600/90 px-2.5 text-xs font-semibold text-white shadow-[0_0_20px_rgba(239,68,68,0.25)] transition-colors hover:bg-red-500 sm:px-3"
+            className="flex h-9 min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.08] px-2.5 text-xs font-medium text-white/90 transition-colors hover:bg-white/[0.14] sm:px-3"
             aria-label="Leave meeting"
+            title="Leave without ending the meeting for others"
           >
             <LogOut className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Leave</span>

@@ -49,6 +49,7 @@ export function MobileControls({
   onReactionsOpenChange,
   onSelectReaction,
   onLeave,
+  onEndMeeting,
   onToggleFullscreen,
 }) {
   const activePanel = useMeetingStore((s) => s.activePanel);
@@ -106,9 +107,9 @@ export function MobileControls({
           <MoreControlsTrigger open={moreOpen} onClick={() => setMoreOpen((v) => !v)} />
           <ControlButton
             size="md"
-            label="Leave meeting"
+            label={isHost ? "End meeting" : "Leave"}
             danger
-            onClick={onLeave}
+            onClick={isHost ? onEndMeeting : onLeave}
             showTooltip={false}
           >
             <PhoneOff className="h-5 w-5" />

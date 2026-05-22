@@ -18,6 +18,9 @@ export async function GET(_req, { params }) {
       startAt: meeting.startAt,
       hostName: meeting.hostName || "",
       hostUserId: meeting.hostUserId || "",
+      ownerUserId: meeting.ownerUserId || meeting.hostUserId || "",
+      currentHostUserId: meeting.currentHostUserId || meeting.hostUserId || "",
+      cancelled: Boolean(meeting.cancelled),
       endedAt: meeting.endedAt || null,
     });
   } catch {

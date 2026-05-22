@@ -44,6 +44,7 @@ function DesktopControls({
   onReactionsOpenChange,
   onSelectReaction,
   onLeave,
+  onEndMeeting,
   onToggleFullscreen,
 }) {
   const activePanel = useMeetingStore((s) => s.activePanel);
@@ -153,7 +154,11 @@ function DesktopControls({
 
       <DockDivider className="mx-1" />
 
-      <ControlButton label="Leave meeting (Shift+L)" danger onClick={onLeave}>
+      <ControlButton
+        label={isHost ? "End meeting for everyone (Shift+L)" : "Leave meeting (Shift+L)"}
+        danger
+        onClick={isHost ? onEndMeeting : onLeave}
+      >
         <PhoneOff className="h-5 w-5" />
       </ControlButton>
     </FloatingDock>

@@ -125,13 +125,23 @@ const VideoMeeting = () => {
     return existing;
   };
 
+  const hostUserId =
+    status === "authenticated" && session?.user?.id
+      ? String(session.user.id)
+      : participantIdentity;
+
   const reportPresence = async (action) => {
     const participantId = getPresenceId();
     try {
       await fetch(`/api/meetings/${roomID}/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, participantId }),
+        body: JSON.stringify({
+          action,
+          participantId,
+          userId: participantIdentity,
+          name: displayName,
+        }),
         keepalive: action === "leave",
       });
     } catch {
@@ -207,6 +217,8 @@ const VideoMeeting = () => {
           cameraOn={cameraOn}
           micOn={micOn}
           isHost={isHost}
+          participantIdentity={participantIdentity}
+          hostUserId={hostUserId}
           inviteUrl={inviteUrl}
           onConnected={() => {
             setIsInMeeting(true);
@@ -214,6 +226,8 @@ const VideoMeeting = () => {
           }}
           onLeaveRoom={endMeeting}
           onCopyInvite={copyInviteLink}
+          onHostChange={(nowHost) => setIsHost(nowHost)}
+          onReportPresence={reportPresence}
         />
       )}
     </div>

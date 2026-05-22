@@ -3,9 +3,28 @@ import dbConnect from "@/lib/dbConnect";
 import Meeting from "@/models/Meeting";
 import { stopActiveRecordingsForRoom } from "@/lib/finalizeRecording";
 
+function upsertParticipant(meeting, { participantId, userId, name }) {
+  const roster = [...(meeting.activeParticipants || [])];
+  const idx = roster.findIndex((p) => p.presenceId === participantId);
+  const entry = {
+    presenceId: participantId,
+    userId: userId || participantId,
+    name: name || "Guest",
+  };
+  if (idx >= 0) roster[idx] = { ...roster[idx], ...entry };
+  else roster.push(entry);
+  meeting.activeParticipants = roster;
+}
+
+function removeParticipant(meeting, participantId) {
+  meeting.activeParticipants = (meeting.activeParticipants || []).filter(
+    (p) => p.presenceId !== participantId
+  );
+}
+
 export async function POST(req, { params }) {
   try {
-    const { action, participantId } = await req.json();
+    const { action, participantId, userId, name } = await req.json();
     if (!action || !participantId) {
       return NextResponse.json({ error: "action and participantId are required" }, { status: 400 });
     }
@@ -15,14 +34,19 @@ export async function POST(req, { params }) {
     if (!meeting) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
     }
+    if (meeting.cancelled) {
+      return NextResponse.json({ error: "Meeting ended" }, { status: 410 });
+    }
 
     const current = new Set(meeting.activeParticipantIds || []);
     if (action === "join") {
       current.add(participantId);
+      upsertParticipant(meeting, { participantId, userId, name });
       meeting.status = "active";
       meeting.endedAt = null;
     } else if (action === "leave") {
       current.delete(participantId);
+      removeParticipant(meeting, participantId);
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -33,7 +57,6 @@ export async function POST(req, { params }) {
     if (action === "leave" && meeting.activeParticipantIds.length === 0) {
       meetingEnded = true;
       if (meeting.kind === "scheduled") {
-        // Scheduled meetings remain reusable until explicitly cancelled.
         meeting.status = "scheduled";
         meeting.endedAt = null;
       } else {
@@ -51,13 +74,14 @@ export async function POST(req, { params }) {
         console.error("[presence] stop recordings", err);
       }
     }
+
     return NextResponse.json({
       ok: true,
       activeCount: meeting.activeParticipantIds.length,
       status: meeting.status,
+      currentHostUserId: meeting.currentHostUserId || "",
     });
   } catch {
     return NextResponse.json({ error: "Failed to update presence" }, { status: 500 });
   }
 }
-

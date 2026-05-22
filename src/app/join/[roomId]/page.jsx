@@ -55,7 +55,13 @@ function JoinMeetingContent() {
     const loadMeeting = async () => {
       try {
         const res = await fetch(`/api/meetings/${roomID}`);
-        if (res.ok) setMeetingMeta(await res.json());
+        if (res.ok) {
+          const meta = await res.json();
+          setMeetingMeta(meta);
+          if (meta.cancelled || (meta.status === "ended" && meta.kind !== "scheduled")) {
+            toast.error("This meeting link has expired.");
+          }
+        }
       } finally {
         setMetaLoading(false);
       }

@@ -71,6 +71,8 @@ export async function POST(req) {
         hostKey,
         hostUserId: hostUserId || "",
         hostName: hostName || "",
+        ownerUserId: hostUserId || "",
+        currentHostUserId: hostUserId || "",
         kind: meetingKind,
         recurrence: normalizedRecurrence,
         cancelled: false,
@@ -78,6 +80,7 @@ export async function POST(req) {
         status: meetingKind === "scheduled" ? "scheduled" : "active",
         endedAt: null,
         activeParticipantIds: [],
+        activeParticipants: [],
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

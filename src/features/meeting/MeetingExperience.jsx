@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef, useState } from "react";
 import { RoomAudioRenderer } from "@livekit/components-react";
 import { ConnectionState, DisconnectReason, RoomEvent } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
+import { toast } from "react-toastify";
 import { useMeetingStore, PANELS } from "@/store/meetingStore";
 import { useLiveKitReactions } from "@/hooks/useLiveKitReactions";
 import { useMeetingControls } from "./hooks/useMeetingControls";
@@ -11,6 +12,7 @@ import { useConnectionQuality } from "./hooks/useConnectionQuality";
 import { useMeetingKeyboard } from "./hooks/useMeetingKeyboard";
 import { useRecording } from "./hooks/useRecording";
 import { useRaisedHands } from "./hooks/useRaisedHands";
+import { useMeetingLifecycle } from "./hooks/useMeetingLifecycle";
 import { RaisedHandsBanner } from "@/components/meeting/RaisedHandsBanner";
 import { MeetingVideoStage } from "./components/MeetingVideoStage";
 import { MeetingTopBar } from "./components/MeetingTopBar";
@@ -71,12 +73,16 @@ export function MeetingExperience({
   roomId,
   meetingTitle,
   isHost,
+  participantIdentity,
+  hostUserId,
   inviteUrl,
   startedAt,
   onConnected,
   onDisconnected,
   onLeaveRoom,
   onCopyInvite,
+  onHostChange,
+  onReportPresence,
 }) {
   const joinToastShownRef = useRef(false);
   const activePanel = useMeetingStore((s) => s.activePanel);
@@ -103,10 +109,50 @@ export function MeetingExperience({
   const { isRecording, toggleRecording, stopRecordingIfActive } = useRecording(roomId, isHost);
   useConnectionQuality();
 
-  const handleLeave = useCallback(async () => {
-    if (isHost) await stopRecordingIfActive({ silent: true, force: true });
+  const { transferHostOnLeave, endMeetingForAll } = useMeetingLifecycle({
+    roomId,
+    participantIdentity,
+    hostUserId,
+    isHost,
+    onHostChange,
+    onMeetingEnded: onLeaveRoom,
+  });
+
+  const disconnectAndExit = useCallback(async () => {
+    await onReportPresence?.("leave");
     controls.leaveCall();
-  }, [isHost, stopRecordingIfActive, controls.leaveCall]);
+  }, [controls.leaveCall, onReportPresence]);
+
+  const handleLeave = useCallback(async () => {
+    try {
+      if (isHost) {
+        await stopRecordingIfActive({ silent: true, force: true });
+        await transferHostOnLeave();
+      }
+      await disconnectAndExit();
+    } catch (e) {
+      toast.error(e?.message || "Could not leave meeting");
+    }
+  }, [
+    isHost,
+    stopRecordingIfActive,
+    transferHostOnLeave,
+    disconnectAndExit,
+  ]);
+
+  const handleEndMeeting = useCallback(async () => {
+    if (!isHost) {
+      await handleLeave();
+      return;
+    }
+    try {
+      await stopRecordingIfActive({ silent: true, force: true });
+      await endMeetingForAll();
+      await disconnectAndExit();
+    } catch (e) {
+      toast.error(e?.message || "Could not end meeting");
+    }
+  }, [isHost, handleLeave, stopRecordingIfActive, endMeetingForAll, disconnectAndExit]);
 
   useEffect(() => () => reset(), [reset]);
 
@@ -126,7 +172,7 @@ export function MeetingExperience({
     onToggleChat: () => useMeetingStore.getState().togglePanel(PANELS.CHAT),
     onToggleParticipants: () => useMeetingStore.getState().togglePanel(PANELS.PARTICIPANTS),
     onToggleFullscreen: toggleFullscreen,
-    onLeave: handleLeave,
+    onLeave: isHost ? handleEndMeeting : handleLeave,
   });
 
   const closePanel = () => setActivePanel(PANELS.NONE);
@@ -184,6 +230,7 @@ export function MeetingExperience({
           onReactionsOpenChange={setReactionsOpen}
           onSelectReaction={handleSelectReaction}
           onLeave={handleLeave}
+          onEndMeeting={handleEndMeeting}
           onToggleFullscreen={toggleFullscreen}
           isFullscreen={isFullscreen}
         />
