@@ -148,7 +148,7 @@ export function TopBar({
             type="button"
             onClick={() => setLayout(layout === LAYOUTS.GRID ? LAYOUTS.SPEAKER : LAYOUTS.GRID)}
             className="hidden h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06] text-white/90 transition-colors hover:bg-white/[0.12] md:flex"
-            title={layout === LAYOUTS.GRID ? "Speaker view" : "Grid view"}
+            title={layout === LAYOUTS.GRID ? "Switch to speaker view" : "Switch to grid view"}
             aria-label="Toggle layout"
           >
             {layout === LAYOUTS.GRID ? <User className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}

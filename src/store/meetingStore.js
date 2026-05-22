@@ -14,7 +14,7 @@ export const PANELS = {
 };
 
 export const useMeetingStore = create((set) => ({
-  layout: LAYOUTS.SPEAKER,
+  layout: LAYOUTS.GRID,
   activePanel: PANELS.NONE,
   settingsOpen: false,
   isFullscreen: false,
@@ -51,7 +51,7 @@ export const useMeetingStore = create((set) => ({
   setConnectionQuality: (connectionQuality) => set({ connectionQuality }),
   reset: () =>
     set({
-      layout: LAYOUTS.SPEAKER,
+      layout: LAYOUTS.GRID,
       activePanel: PANELS.NONE,
       settingsOpen: false,
       isFullscreen: false,

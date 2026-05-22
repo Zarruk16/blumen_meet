@@ -37,8 +37,8 @@ export function SettingsModal({ open, onClose }) {
                 <p className="text-xs text-zinc-500 uppercase mb-2">Video layout</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: LAYOUTS.SPEAKER, label: "Speaker", icon: User },
                     { id: LAYOUTS.GRID, label: "Grid", icon: LayoutGrid },
+                    { id: LAYOUTS.SPEAKER, label: "Speaker", icon: User },
                   ].map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
