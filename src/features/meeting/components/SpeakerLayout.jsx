@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { useParticipants, useTracks } from "@livekit/components-react";
-import { Track } from "livekit-client";
 import { Users } from "lucide-react";
 import { ParticipantTile } from "./ParticipantTile";
+import { useStageDominant } from "../hooks/useStageDominant";
+import { cn } from "@/lib/utils";
 
 function EmptyStage() {
   return (
@@ -23,76 +22,62 @@ function EmptyStage() {
 }
 
 export function SpeakerLayout() {
-  const participants = useParticipants();
-  const tracks = useTracks(
-    [
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-      { source: Track.Source.Camera, withPlaceholder: true },
-    ],
-    { onlySubscribed: true }
-  );
-
-  const { dominant, thumbnails } = useMemo(() => {
-    const speaking = participants.filter((p) => p.isSpeaking);
-    const dominantParticipant = speaking[0] || participants[0];
-    if (!dominantParticipant) return { dominant: null, thumbnails: [] };
-
-    const dominantTrack =
-      tracks.find(
-        (t) =>
-          t.participant.identity === dominantParticipant.identity &&
-          t.source === Track.Source.ScreenShare
-      ) ||
-      tracks.find(
-        (t) =>
-          t.participant.identity === dominantParticipant.identity &&
-          t.source === Track.Source.Camera
-      );
-
-    const thumbs = participants
-      .filter((p) => p.identity !== dominantParticipant.identity)
-      .map((p) => ({
-        participant: p,
-        trackRef: tracks.find(
-          (t) => t.participant.identity === p.identity && t.source === Track.Source.Camera
-        ),
-      }));
-
-    return {
-      dominant: {
-        participant: dominantParticipant,
-        trackRef: dominantTrack,
-        isSpeaking: dominantParticipant.isSpeaking,
-      },
-      thumbnails: thumbs,
-    };
-  }, [participants, tracks]);
+  const {
+    dominant,
+    thumbnails,
+    screenShareFillStage,
+    pinScreenShare,
+    unpinParticipant,
+    toggleScreenShareFillStage,
+    pinnedParticipantId,
+  } = useStageDominant();
 
   if (!dominant) return <EmptyStage />;
 
+  const fillStage = screenShareFillStage && dominant.isScreenShare;
+  const hideThumbs = fillStage;
+
   return (
     <div
-      className="flex h-full w-full flex-col gap-2 p-2 sm:flex-row sm:gap-3 sm:p-4 md:gap-4
-        pt-[calc(3.5rem+env(safe-area-inset-top))]
-        pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-[calc(6rem+env(safe-area-inset-bottom))]"
+      className={cn(
+        "flex h-full w-full gap-2 p-2 sm:gap-3 sm:p-4 md:gap-4",
+        "pt-[calc(3.5rem+env(safe-area-inset-top))]",
+        "pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-[calc(6rem+env(safe-area-inset-bottom))]",
+        hideThumbs ? "flex-col" : "flex-col sm:flex-row"
+      )}
     >
-      <div className="flex-1 min-h-0 min-h-[40vh] sm:min-h-0">
+      <div
+        className={cn(
+          "flex-1 min-h-0",
+          !hideThumbs && "min-h-[40vh] sm:min-h-0"
+        )}
+      >
         <ParticipantTile
           participant={dominant.participant}
           trackRef={dominant.trackRef}
           isSpeaking={dominant.isSpeaking}
           isDominant
-          className="h-full min-h-[200px] sm:min-h-0"
+          isScreenShare={dominant.isScreenShare}
+          isPinned={pinnedParticipantId === dominant.participant.identity}
+          screenShareFillStage={fillStage}
+          onPinScreenShare={() => pinScreenShare(dominant.participant.identity)}
+          onUnpin={unpinParticipant}
+          onToggleFillStage={dominant.isScreenShare ? toggleScreenShareFillStage : undefined}
+          className={cn("h-full", hideThumbs ? "min-h-0" : "min-h-[200px] sm:min-h-0")}
         />
       </div>
-      {thumbnails.length > 0 && (
+      {!hideThumbs && thumbnails.length > 0 && (
         <div className="flex shrink-0 gap-2 overflow-x-auto scrollbar-none sm:w-36 md:w-44 sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden">
-          {thumbnails.map(({ participant, trackRef }) => (
+          {thumbnails.map(({ participant, trackRef, isSpeaking, isScreenSharing }) => (
             <ParticipantTile
               key={participant.identity}
               participant={participant}
               trackRef={trackRef}
-              isSpeaking={participant.isSpeaking}
+              isSpeaking={isSpeaking}
+              isScreenSharing={isScreenSharing}
+              onPinScreenShare={
+                isScreenSharing ? () => pinScreenShare(participant.identity) : undefined
+              }
               className="h-24 w-36 shrink-0 sm:h-28 sm:w-full"
             />
           ))}

@@ -1,12 +1,15 @@
 "use client";
 
 import { useMeetingStore, LAYOUTS } from "@/store/meetingStore";
+import { useSpotlightActive } from "../hooks/useStageDominant";
 import { VideoGrid } from "./VideoGrid";
 import { SpeakerLayout } from "./SpeakerLayout";
 import { ReactionBubbles } from "./ReactionBubbles";
 
 export function MeetingVideoStage({ reactionBubbles }) {
   const layout = useMeetingStore((s) => s.layout);
+  const spotlightActive = useSpotlightActive();
+  const usePresenterView = layout === LAYOUTS.SPEAKER || spotlightActive;
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#07070b]">
@@ -18,7 +21,7 @@ export function MeetingVideoStage({ reactionBubbles }) {
         }}
       />
       <div className="relative h-full w-full">
-        {layout === LAYOUTS.GRID ? <VideoGrid /> : <SpeakerLayout />}
+        {usePresenterView ? <SpeakerLayout /> : <VideoGrid />}
       </div>
       <ReactionBubbles bubbles={reactionBubbles} />
     </div>

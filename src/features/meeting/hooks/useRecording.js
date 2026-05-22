@@ -53,7 +53,7 @@ export function useRecording(roomId, isHost) {
       try {
         await recordingApi.stopRecording(id, { keepalive });
         if (!silent && !keepalive) {
-          // no toast on auto-stop
+          toast.success("Recording stopped");
         }
       } catch (e) {
         if (!silent && !keepalive) {
@@ -88,7 +88,7 @@ export function useRecording(roomId, isHost) {
   }, [roomId, isHost, setRecording, session?.user?.id, session?.user?.name, persistRecordingId]);
 
   const stopRecording = useCallback(async () => {
-    await stopRecordingIfActive({ silent: false });
+    await stopRecordingIfActive({ silent: false, force: true });
   }, [stopRecordingIfActive]);
 
   const toggleRecording = useCallback(() => {

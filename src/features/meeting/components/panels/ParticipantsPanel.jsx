@@ -1,12 +1,15 @@
 "use client";
 
 import { useParticipants, useRoomContext } from "@livekit/components-react";
-import { Mic, MicOff, Hand, Crown, Video, VideoOff } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Mic, MicOff, Hand, Crown, Video, VideoOff, Monitor, Pin, PinOff } from "lucide-react";
+import { useMeetingStore } from "@/store/meetingStore";
 
 export function ParticipantsPanel({ isHost }) {
   const participants = useParticipants();
   const room = useRoomContext();
+  const pinnedParticipantId = useMeetingStore((s) => s.pinnedParticipantId);
+  const pinScreenShare = useMeetingStore((s) => s.setPinnedParticipant);
+  const clearPinnedParticipant = useMeetingStore((s) => s.clearPinnedParticipant);
 
   const muteParticipant = async (identity) => {
     if (!isHost || !room) return;
@@ -44,6 +47,9 @@ export function ParticipantsPanel({ isHost }) {
                   ) : (
                     <MicOff className="h-3 w-3 text-red-400" />
                   )}
+                  {p.isScreenShareEnabled && (
+                    <Monitor className="h-3 w-3 text-sky-300" aria-label="Sharing screen" />
+                  )}
                   {p.isCameraEnabled ? (
                     <Video className="h-3 w-3 text-emerald-400" />
                   ) : (
@@ -52,15 +58,38 @@ export function ParticipantsPanel({ isHost }) {
                 </div>
               </div>
             </div>
-            {isHost && !isLocal && p.isMicrophoneEnabled && (
-              <button
-                type="button"
-                onClick={() => muteParticipant(p.identity)}
-                className="text-xs text-red-400 hover:text-red-300 shrink-0"
-              >
-                Mute
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-2">
+              {p.isScreenShareEnabled && (
+                pinnedParticipantId === p.identity ? (
+                  <button
+                    type="button"
+                    onClick={() => clearPinnedParticipant()}
+                    className="flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200"
+                  >
+                    <PinOff className="h-3.5 w-3.5" />
+                    Unpin
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => pinScreenShare(p.identity, { screenShareOnly: true })}
+                    className="flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
+                  >
+                    <Pin className="h-3.5 w-3.5" />
+                    Pin screen
+                  </button>
+                )
+              )}
+              {isHost && !isLocal && p.isMicrophoneEnabled && (
+                <button
+                  type="button"
+                  onClick={() => muteParticipant(p.identity)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Mute
+                </button>
+              )}
+            </div>
           </div>
         );
       })}

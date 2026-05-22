@@ -45,7 +45,9 @@ export function MobileControls({
   onToggleScreenShare,
   onToggleHand,
   onToggleRecording,
-  onSendReaction,
+  reactionsOpen,
+  onReactionsOpenChange,
+  onSelectReaction,
   onLeave,
   onToggleFullscreen,
 }) {
@@ -53,7 +55,6 @@ export function MobileControls({
   const togglePanel = useMeetingStore((s) => s.togglePanel);
   const setSettingsOpen = useMeetingStore((s) => s.setSettingsOpen);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
 
   const closeMore = () => setMoreOpen(false);
 
@@ -130,10 +131,10 @@ export function MobileControls({
         <ExpandableControlItem
           label="Reactions"
           onClick={() => {
-            setShowReactions(true);
+            onReactionsOpenChange?.(true);
             closeMore();
           }}
-          active={showReactions}
+          active={reactionsOpen}
         >
           <Smile className="h-5 w-5" />
         </ExpandableControlItem>
@@ -195,27 +196,37 @@ export function MobileControls({
       </ExpandableControls>
 
       <AnimatePresence>
-        {showReactions && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 gap-1 rounded-2xl border border-white/15 bg-zinc-950/95 p-2 backdrop-blur-xl shadow-2xl lg:hidden"
-          >
-            {REACTION_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-xl hover:bg-white/10 active:scale-95"
-                onClick={() => {
-                  onSendReaction?.(emoji);
-                  setShowReactions(false);
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
-          </motion.div>
+        {reactionsOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close reactions"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[55] bg-black/30 lg:hidden"
+              onClick={() => onReactionsOpenChange?.(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-[60] w-[min(calc(100vw-1.25rem),20rem)] -translate-x-1/2 rounded-2xl border border-white/15 bg-zinc-950/95 p-2.5 backdrop-blur-xl shadow-2xl lg:hidden"
+            >
+              <div className="grid grid-cols-4 gap-1.5">
+                {REACTION_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl text-xl hover:bg-white/10 active:scale-95"
+                    onClick={() => onSelectReaction?.(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

@@ -41,14 +41,15 @@ function DesktopControls({
   onToggleScreenShare,
   onToggleHand,
   onToggleRecording,
-  onSendReaction,
+  reactionsOpen,
+  onReactionsOpenChange,
+  onSelectReaction,
   onLeave,
   onToggleFullscreen,
 }) {
   const activePanel = useMeetingStore((s) => s.activePanel);
   const togglePanel = useMeetingStore((s) => s.togglePanel);
   const setSettingsOpen = useMeetingStore((s) => s.setSettingsOpen);
-  const [showReactions, setShowReactions] = useState(false);
 
   return (
     <FloatingDock wrapperClassName="hidden lg:flex" className="max-w-3xl xl:max-w-4xl">
@@ -100,11 +101,15 @@ function DesktopControls({
         </ControlButton>
 
         <div className="relative">
-          <ControlButton label="Reactions" onClick={() => setShowReactions((v) => !v)}>
+          <ControlButton
+            label="Reactions"
+            active={reactionsOpen}
+            onClick={() => onReactionsOpenChange?.(!reactionsOpen)}
+          >
             <Smile className="h-5 w-5" />
           </ControlButton>
           <AnimatePresence>
-            {showReactions && (
+            {reactionsOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -119,10 +124,7 @@ function DesktopControls({
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.92 }}
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-lg hover:bg-white/10"
-                    onClick={() => {
-                      onSendReaction?.(emoji);
-                      setShowReactions(false);
-                    }}
+                    onClick={() => onSelectReaction?.(emoji)}
                   >
                     {emoji}
                   </motion.button>

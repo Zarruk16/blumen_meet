@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { RoomAudioRenderer } from "@livekit/components-react";
 import { ConnectionState, DisconnectReason, RoomEvent } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
@@ -44,7 +44,7 @@ function RoomConnectionHandler({
     };
 
     const onDisconnected = (reason) => {
-      if (isHost) onStopRecording?.({ silent: true, keepalive: true });
+      if (isHost) onStopRecording?.({ silent: true, keepalive: true, force: true });
       connectedRef.current = false;
       if (
         reason === DisconnectReason.CLIENT_INITIATED ||
@@ -85,17 +85,23 @@ export function MeetingExperience({
   const setFullscreen = useMeetingStore((s) => s.setFullscreen);
   const reset = useMeetingStore((s) => s.reset);
 
-  const {
-    reactionBubbles,
-    sendReaction,
-  } = useLiveKitReactions({ enabled: true });
+  const { reactionBubbles, sendReaction } = useLiveKitReactions({ enabled: true });
+  const [reactionsOpen, setReactionsOpen] = useState(false);
+
+  const handleSelectReaction = useCallback(
+    (emoji) => {
+      setReactionsOpen(false);
+      void sendReaction(emoji);
+    },
+    [sendReaction]
+  );
 
   const controls = useMeetingControls();
   const { isRecording, toggleRecording, stopRecordingIfActive } = useRecording(roomId, isHost);
   useConnectionQuality();
 
   const handleLeave = useCallback(async () => {
-    if (isHost) await stopRecordingIfActive({ silent: true });
+    if (isHost) await stopRecordingIfActive({ silent: true, force: true });
     controls.leaveCall();
   }, [isHost, stopRecordingIfActive, controls.leaveCall]);
 
@@ -160,7 +166,9 @@ export function MeetingExperience({
           onToggleScreenShare={controls.toggleScreenShare}
           onToggleHand={controls.toggleHandRaise}
           onToggleRecording={toggleRecording}
-          onSendReaction={sendReaction}
+          reactionsOpen={reactionsOpen}
+          onReactionsOpenChange={setReactionsOpen}
+          onSelectReaction={handleSelectReaction}
           onLeave={handleLeave}
           onToggleFullscreen={toggleFullscreen}
           isFullscreen={isFullscreen}

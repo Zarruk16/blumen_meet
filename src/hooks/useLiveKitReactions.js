@@ -12,7 +12,6 @@ const REACTION_EMOJIS = ["👍", "👏", "😂", "❤️", "🎉", "🔥"];
  */
 export function useLiveKitReactions({ enabled = true } = {}) {
   const room = useRoomContext();
-  const [showReactions, setShowReactions] = useState(false);
   const [reactionBubbles, setReactionBubbles] = useState([]);
   const timeoutsRef = useRef([]);
 
@@ -65,16 +64,12 @@ export function useLiveKitReactions({ enabled = true } = {}) {
         addBubble(emoji);
       } catch {
         toast.error("Couldn't send reaction");
-      } finally {
-        setShowReactions(false);
       }
     },
     [room, addBubble]
   );
 
   return {
-    showReactions,
-    setShowReactions,
     reactionBubbles,
     sendReaction,
     reactionEmojis: REACTION_EMOJIS,

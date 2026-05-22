@@ -23,8 +23,19 @@ export const useMeetingStore = create((set) => ({
   recordingId: null,
   recordingStartedAt: null,
   connectionQuality: "good",
+  pinnedParticipantId: null,
+  pinScreenShareOnly: false,
+  screenShareFillStage: false,
 
   setLayout: (layout) => set({ layout }),
+  setPinnedParticipant: (pinnedParticipantId, { screenShareOnly = false } = {}) =>
+    set({
+      pinnedParticipantId,
+      pinScreenShareOnly: screenShareOnly,
+    }),
+  clearPinnedParticipant: () =>
+    set({ pinnedParticipantId: null, pinScreenShareOnly: false }),
+  setScreenShareFillStage: (screenShareFillStage) => set({ screenShareFillStage }),
   setActivePanel: (activePanel) => set({ activePanel }),
   togglePanel: (panel) =>
     set((s) => ({
@@ -51,5 +62,8 @@ export const useMeetingStore = create((set) => ({
       recordingId: null,
       recordingStartedAt: null,
       connectionQuality: "good",
+      pinnedParticipantId: null,
+      pinScreenShareOnly: false,
+      screenShareFillStage: false,
     }),
 }));
