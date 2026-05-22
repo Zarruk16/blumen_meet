@@ -1,33 +1,40 @@
-"use client"
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { useSession } from 'next-auth/react'
-import { Copy, Link2, LinkIcon, Plus, Video } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
-import { toast } from 'react-toastify'
-import { v4 as uuidv4 } from 'uuid';
-import Loader from './Loader'
+"use client";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useSession } from "next-auth/react";
+import { CalendarPlus, Copy, LinkIcon, Plus, Video, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { redirectToLogin } from "@/lib/authRedirect";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { v4 as uuidv4 } from "uuid";
+import Loader from "./Loader";
+import { ScheduleMeetingDialog } from "@/components/meeting/ScheduleMeetingDialog";
+import { ShareMeetingLinkDialog } from "@/components/meeting/ShareMeetingLinkDialog";
+import { meetingFieldClass } from "@/components/meeting/meetingFormStyles";
 
 const MeetingAction = () => {
-  const [isLoading,setIsLoading] = useState()
-  const [isDialogOpen,setIsDialogOpen] = useState(false)
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false)
-  const [baseUrl,setBaseUrl] = useState("")
-  const router = useRouter()
-  const [generatedMeetingUrl,setGeneratedMeetingUrl] = useState("")
-  const [meetingLink,setMeetingLink] = useState("")
-  const [scheduledAt, setScheduledAt] = useState("")
-  const [recurrence, setRecurrence] = useState("none")
-  const [weeklyDay, setWeeklyDay] = useState("1") // 1-5 => Mon-Fri
-  const [weeklyTime, setWeeklyTime] = useState("")
+  const [isLoading, setIsLoading] = useState();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
+  const router = useRouter();
+  const [generatedMeetingUrl, setGeneratedMeetingUrl] = useState("");
+  const [meetingLink, setMeetingLink] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [recurrence, setRecurrence] = useState("none");
+  const [weeklyDay, setWeeklyDay] = useState("1");
+  const [weeklyTime, setWeeklyTime] = useState("");
   const { data: session } = useSession();
 
-  useEffect(() =>{
-    setBaseUrl(window.location.origin)
-  },[])
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
 
   const createMeetingRecord = async ({ roomId, hostKey, kind, startAt, recurrence }) => {
     const hostUserId = session?.user?.id || "";
@@ -47,7 +54,16 @@ const MeetingAction = () => {
     if (!response.ok) throw new Error("create_meeting_failed");
   };
 
-  const handleCreateMeetingForLater = async () =>{
+  const ensureAuth = () => {
+    if (!session?.user) {
+      redirectToLogin(router, "/#workspace");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreateMeetingForLater = async () => {
+    if (!ensureAuth()) return;
     if (recurrence !== "weekly" && !scheduledAt) {
       toast.error("Please choose meeting date and time");
       return;
@@ -62,7 +78,6 @@ const MeetingAction = () => {
       const [h, m] = timeValue.split(":").map(Number);
       const target = new Date(now);
       target.setHours(h, m, 0, 0);
-      // JS getDay(): Sun=0, Mon=1 ... Sat=6
       const currentDay = now.getDay();
       let delta = Number(dayIndex) - currentDay;
       if (delta < 0 || (delta === 0 && target <= now)) delta += 7;
@@ -75,7 +90,7 @@ const MeetingAction = () => {
         ? toNextWeekdayDateTimeISO(weeklyDay, weeklyTime)
         : new Date(scheduledAt).toISOString();
 
-    const roomId=  uuidv4();
+    const roomId = uuidv4();
     const hostKey = uuidv4();
     try {
       localStorage.setItem(`hostKey:${roomId}`, hostKey);
@@ -90,32 +105,29 @@ const MeetingAction = () => {
       toast.error("Could not schedule meeting");
       return;
     }
-    const url = `${baseUrl}/join/${roomId}`
-    setGeneratedMeetingUrl(url)
+    const url = `${baseUrl}/join/${roomId}`;
+    setGeneratedMeetingUrl(url);
     setIsDialogOpen(true);
     setIsScheduleDialogOpen(false);
-    toast.success("meeting link created successfully")
-  }
+  };
 
-  const handleJoinMeeting = () =>{
-    if(meetingLink){
+  const handleJoinMeeting = () => {
+    if (meetingLink) {
       setIsLoading(true);
       const raw = meetingLink.trim();
-      const formattedLink = raw.includes("http")
-        ? raw
-        : `${baseUrl}/join/${raw}`;
+      const formattedLink = raw.includes("http") ? raw : `${baseUrl}/join/${raw}`;
       const url = new URL(formattedLink, baseUrl);
       router.push(`${url.pathname}${url.search}`);
-      toast.info('joining meeting...')
-    }else {
-      toast.error('please enter a valid link or code ')
+      toast.info("Joining meeting…");
+    } else {
+      toast.error("Please enter a valid link or code");
     }
-  }
+  };
 
-
-  const handleStartMeeting = async () =>{
+  const handleStartMeeting = async () => {
+    if (!ensureAuth()) return;
     setIsLoading(true);
-     const roomId=  uuidv4();
+    const roomId = uuidv4();
     const hostKey = uuidv4();
     try {
       localStorage.setItem(`hostKey:${roomId}`, hostKey);
@@ -129,143 +141,93 @@ const MeetingAction = () => {
       toast.error("Could not start meeting");
       return;
     }
-    const meetingUrl = `${baseUrl}/join/${roomId}`
-    router.push(meetingUrl)
-    toast.info('joining meeting...')
-  }
+    const meetingUrl = `${baseUrl}/join/${roomId}`;
+    router.push(meetingUrl);
+    toast.info("Joining meeting…");
+  };
 
-  const copyToClipboard =() =>{
+  const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedMeetingUrl);
-    toast.info('meeting link copied to clipboard')
-  }
+    toast.success("Link copied");
+  };
+
   return (
     <>
-    {isLoading && <Loader/>}
-    <div className='flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4'>
-         <DropdownMenu>
+      {isLoading && <Loader />}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
-              <Button className="w-full sm:w-auto" size="lg">
-                <Video className='w-5 h-5 mr-2'/>
-                New meeting
-              </Button>
+            <button
+              type="button"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <Video className="h-5 w-5" />
+              New meeting
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setIsScheduleDialogOpen(true)}>
-              <Link2 className='w-4 h-4 mr-2'/>
-              create a meeting for later
+          <DropdownMenuContent className="border-white/10 bg-zinc-950/95 backdrop-blur-xl text-white">
+            <DropdownMenuItem
+              className="focus:bg-white/10 focus:text-white cursor-pointer"
+              onClick={() => setIsScheduleDialogOpen(true)}
+            >
+              <CalendarPlus className="mr-2 h-4 w-4 text-violet-400" />
+              Schedule for later
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleStartMeeting} >
-              <Plus className='w-4 h-4 mr-2'/>
-              start an instant meeting 
+            <DropdownMenuItem
+              className="focus:bg-white/10 focus:text-white cursor-pointer"
+              onClick={handleStartMeeting}
+            >
+              <Zap className="mr-2 h-4 w-4 text-amber-400" />
+              Start instant meeting
             </DropdownMenuItem>
           </DropdownMenuContent>
-         </DropdownMenu>
-         <div className='flex w-full sm:w-auto relative'>
-          <span className='absolute left-2 top-1/2 transform -translate-y-1/2'>
-            <LinkIcon className='w-4 h-4 text-gray-400'/>
-          </span>
-           <Input
-            placeholder='Enter a code or link'
-            className="pl-8 rounded-r-none pr-10"
-            value={meetingLink}
-            onChange={(e) => setMeetingLink(e.target.value)}
-          />
-          <Button
-           variant="secondary"
-           className="rounded-l-none"
-           onClick={handleJoinMeeting}
-          >
-            Join
-          </Button>
+        </DropdownMenu>
 
-         </div>
-    </div>
-    <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-      <DialogContent className="max-w-sm rounded-lg p-6">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">
-            Schedule meeting
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Select the date and time when participants can join automatically.
-          </p>
-          <Input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-            disabled={recurrence === "weekly"}
-          />
-          <div>
-            <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Repeat</label>
-            <select
-              className="w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
-              value={recurrence}
-              onChange={(e) => setRecurrence(e.target.value)}
-            >
-              <option value="none">Does not repeat</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </div>
-          {recurrence === "weekly" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Day</label>
-                <select
-                  className="w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
-                  value={weeklyDay}
-                  onChange={(e) => setWeeklyDay(e.target.value)}
-                >
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Time</label>
-                <Input
-                  type="time"
-                  value={weeklyTime}
-                  onChange={(e) => setWeeklyTime(e.target.value)}
-                />
-              </div>
+        <div className="relative flex w-full sm:flex-1 sm:max-w-md">
+          <div className="flex w-full rounded-2xl border border-white/10 bg-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
+            <div className="relative flex-1 min-w-0">
+              <LinkIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <input
+                placeholder="Enter code or link"
+                className={`${meetingFieldClass} border-0 rounded-none rounded-l-2xl pl-10 focus:ring-0`}
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleJoinMeeting()}
+              />
             </div>
-          )}
-          <Button className="w-full" onClick={handleCreateMeetingForLater}>
-            Create scheduled link
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent className="max-w-sm rounded-lg p-6">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-normal">
-              Here's your joining information
-          </DialogTitle>
-        </DialogHeader>
-        <div className='flex flex-col space-y-4 '>
-          <p className='text-sm text-gray-600 dark:text-gray-300'>
-          Send this to people that you want to meet with. Make sure that you save it so that you can use it later, too.
-          </p>
-          <div className='flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-4 rounded-lg '>
-             <span className='text-gray-700 dark:text-gray-200 break-all'>
-                 {generatedMeetingUrl.slice(0,30)}...
-             </span>
-             <Button variant="ghost" className="hover:bg-gray-200" onClick={copyToClipboard}>
-                 <Copy className='w-5 h-5 text-orange-500'/>
-             </Button>
+            <button
+              type="button"
+              onClick={handleJoinMeeting}
+              className="shrink-0 rounded-r-2xl border-l border-white/10 bg-white/10 px-5 text-sm font-semibold text-white transition hover:bg-white/15"
+            >
+              Join
+            </button>
           </div>
         </div>
-      </DialogContent>
-         
-    </Dialog>
-    </>
-  )
-}
+      </div>
 
-export default MeetingAction
+      <ScheduleMeetingDialog
+        open={isScheduleDialogOpen}
+        onOpenChange={setIsScheduleDialogOpen}
+        scheduledAt={scheduledAt}
+        onScheduledAtChange={setScheduledAt}
+        recurrence={recurrence}
+        onRecurrenceChange={setRecurrence}
+        weeklyDay={weeklyDay}
+        onWeeklyDayChange={setWeeklyDay}
+        weeklyTime={weeklyTime}
+        onWeeklyTimeChange={setWeeklyTime}
+        onSubmit={handleCreateMeetingForLater}
+      />
+
+      <ShareMeetingLinkDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        meetingUrl={generatedMeetingUrl}
+        onCopy={copyToClipboard}
+      />
+    </>
+  );
+};
+
+export default MeetingAction;

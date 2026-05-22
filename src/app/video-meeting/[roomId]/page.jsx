@@ -155,7 +155,6 @@ const VideoMeeting = () => {
 
   const endMeeting = () => {
     reportPresence("leave");
-    toast.success("Meeting ended successfully");
     setIsInMeeting(false);
     joinedRef.current = false;
     router.push("/");
@@ -164,7 +163,6 @@ const VideoMeeting = () => {
   const copyInviteLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      toast.success("Meeting link copied");
     } catch {
       toast.error("Couldn't copy meeting link");
     }
@@ -205,6 +203,7 @@ const VideoMeeting = () => {
         <LiveKitMeetingRoom
           token={token}
           serverUrl={serverUrl}
+          roomId={roomID}
           cameraOn={cameraOn}
           micOn={micOn}
           isHost={isHost}

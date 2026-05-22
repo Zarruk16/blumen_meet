@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Info, LogOut, Moon, Plus, Sun, Video, X } from 'lucide-react';
+import { Film, Info, LogOut, Moon, Plus, Sun, Video, X } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes'
 import Link from 'next/link';
@@ -53,6 +53,11 @@ const Header = () => {
                 )}
                 
             </Button>
+            <Link href="/recordings">
+              <Button variant="ghost" size="icon" className="hidden md:flex" title="Recordings">
+                <Film className="w-5 h-5" />
+              </Button>
+            </Link>
             <Button variant="ghost" size='icon' className="hidden md:block">
                 <Info className='w-5 h-5 ml-2'/>
             </Button>

@@ -9,12 +9,62 @@ body {
 @layer base {
   :root {
     --radius: 0.5rem;
+    --meeting-bg: #0a0a0f;
+    --meeting-surface: rgba(24, 24, 27, 0.85);
   }
 }
 
-/* LiveKit conference fills the meeting viewport */
-.lk-room-container,
-.lk-video-conference {
-  height: 100%;
-  min-height: 0;
+html:fullscreen,
+html:fullscreen body {
+  background: var(--meeting-bg);
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+/* Landing workspace — dark theme overrides for existing components */
+.landing-workspace [class*="border-gray"] {
+  border-color: rgb(255 255 255 / 0.1);
+}
+.landing-workspace input,
+.landing-scheduled input,
+.landing-scheduled select {
+  background-color: rgb(255 255 255 / 0.05) !important;
+  border-color: rgb(255 255 255 / 0.1) !important;
+  color: white !important;
+}
+.landing-scheduled .text-gray-600,
+.landing-scheduled .text-gray-700,
+.landing-workspace .text-gray-600 {
+  color: rgb(161 161 170) !important;
+}
+.landing-scheduled .bg-white,
+.landing-scheduled .dark\\:bg-gray-950 {
+  background-color: rgb(255 255 255 / 0.03) !important;
+}
+.landing-recordings .text-gray-600,
+.landing-recordings .text-gray-900 {
+  color: rgb(212 212 216) !important;
+}
+.landing-recordings li {
+  border-color: rgb(255 255 255 / 0.1) !important;
+  background-color: rgb(255 255 255 / 0.03) !important;
+}
+
+html {
+  scroll-behavior: smooth;
 }

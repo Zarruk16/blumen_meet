@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Meeting from "@/models/Meeting";
+import { stopActiveRecordingsForRoom } from "@/lib/finalizeRecording";
 
 export async function POST(req, { params }) {
   try {
@@ -28,7 +29,9 @@ export async function POST(req, { params }) {
 
     meeting.activeParticipantIds = Array.from(current);
 
+    let meetingEnded = false;
     if (action === "leave" && meeting.activeParticipantIds.length === 0) {
+      meetingEnded = true;
       if (meeting.kind === "scheduled") {
         // Scheduled meetings remain reusable until explicitly cancelled.
         meeting.status = "scheduled";
@@ -40,6 +43,14 @@ export async function POST(req, { params }) {
     }
 
     await meeting.save();
+
+    if (meetingEnded) {
+      try {
+        await stopActiveRecordingsForRoom(params.roomId);
+      } catch (err) {
+        console.error("[presence] stop recordings", err);
+      }
+    }
     return NextResponse.json({
       ok: true,
       activeCount: meeting.activeParticipantIds.length,

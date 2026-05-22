@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { AccessToken } from "livekit-server-sdk";
+import recordingRoutes from "./routes/recording.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -21,6 +22,8 @@ app.use(express.json());
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "livekit-token-server" });
 });
+
+app.use(recordingRoutes);
 
 app.post("/get-token", async (req, res) => {
   try {
@@ -52,6 +55,7 @@ app.post("/get-token", async (req, res) => {
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
+      canUpdateOwnMetadata: true,
       roomAdmin: Boolean(isHost),
     });
 

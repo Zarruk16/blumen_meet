@@ -35,6 +35,7 @@ export async function createLiveKitToken({
     canPublish: true,
     canSubscribe: true,
     canPublishData: true,
+    canUpdateOwnMetadata: true,
     roomAdmin: Boolean(isHost),
   });
 

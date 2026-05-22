@@ -53,6 +53,7 @@ const MeetingFeature = () => {
           alt="meeting_feature"
           width={300}
           height={300}
+          priority={currentSlide === 0}
           className="rounded-full w-40 h-40 md:w-64 md:h-64"
         />
         <Button

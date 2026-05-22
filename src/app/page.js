@@ -1,58 +1,63 @@
-"use client"
+"use client";
+
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
 import Loader from "./components/Loader";
-import Header from "./components/Header";
-import MeetingAction from "./components/MeetingAction";
-import MeetingFeature from "./components/MeetingFeature";
-import ScheduledMeetings from "./components/ScheduledMeetings";
+import { LandingBackground } from "@/components/layout/LandingBackground";
+import { LandingNavbar } from "@/components/layout/LandingNavbar";
+import { HeroSection } from "@/sections/Hero/HeroSection";
+import { TrustStrip } from "@/sections/TrustStrip";
+import { FeaturesSection } from "@/sections/Features/FeaturesSection";
+import { AISection } from "@/sections/AI/AISection";
+import { ProductPreviewSection } from "@/sections/ProductPreview/ProductPreviewSection";
+import { RecordingsSection } from "@/sections/Recordings/RecordingsSection";
+import { WorkspaceSection } from "@/sections/Workspace/WorkspaceSection";
+import { CTASection } from "@/sections/CTA/CTASection";
+import { FooterSection } from "@/sections/Footer/FooterSection";
 
 export default function Home() {
-  const [isLoding,setIsLoading] = useState(true);
-  const {data:session,status}= useSession();
-   
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status } = useSession();
 
-  useEffect(() =>{
-    if(status === 'authenticated'){
-      setIsLoading(false);
-      const hasShownWelcome = localStorage.getItem('hasShownWelcome');
-      if(!hasShownWelcome){
-        toast.success(`Welcome back! ${session?.user?.name}!`)
-        localStorage.setItem('hasShownWelcome','true');
-      }
-    }else if(status === 'unauthenticated'){
+  useEffect(() => {
+    if (status !== "loading") {
       setIsLoading(false);
     }
-  },[status,session])
+  }, [status]);
 
-  if(isLoding){
-    return <Loader/>
+  useEffect(() => {
+    if (status === "authenticated" && typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#workspace" || hash === "#recordings") {
+        setTimeout(() => {
+          document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, [status]);
+
+  if (isLoading) {
+    return <Loader />;
   }
+
   return (
-     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
-          <Header/>
-          <main className="flex-grow p-8 pt-32">
-           <div className="max-w-7xl mx-auto">
-             <div className="flex flex-col md:flex-row items-center justify-between">
-                <div className="md:w-1/2 mb-8 md:mb-0 ">
-                    <h1 className="text-5xl font-bold mb-6 text-gray-900 dark:text-white">
-                    Video calls and meetings for everyone
-                    </h1>
-                    <p className="text-3xl text-gray-600 dark:text-gray-300 mb-12">
-                    Connect, collaborate and celebrate from anywhere with Blumen Meet
-                    </p>
-                      <MeetingAction/>
-                      {status === "authenticated" && (
-                        <ScheduledMeetings hostUserId={session?.user?.id} hostName={session?.user?.name} />
-                      )}
-                </div>
-                <div className="md:w-1/2 ">
-                  <MeetingFeature/>
-                </div>
-             </div>
-           </div>
-          </main>
-     </div>
+    <div className="relative min-h-screen overflow-x-hidden bg-zinc-950 text-white antialiased [&_section]:min-w-0">
+      <LandingBackground />
+      <LandingNavbar />
+      <main>
+        <HeroSection />
+        <TrustStrip />
+        <FeaturesSection />
+        <AISection />
+        <ProductPreviewSection />
+        <RecordingsSection authenticated={status === "authenticated"} />
+        <WorkspaceSection
+          session={session}
+          isAuthenticated={status === "authenticated"}
+        />
+        <CTASection />
+      </main>
+      <FooterSection />
+    </div>
   );
 }
