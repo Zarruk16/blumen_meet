@@ -35,8 +35,10 @@ function GoogleIcon() {
 
 function AuthPageContent() {
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/#workspace";
+  const callbackUrl = searchParams.get("callbackUrl") || "/auth/continue";
 
   useEffect(() => {
     localStorage.removeItem("hasShownWelcome");
@@ -46,6 +48,22 @@ function AuthPageContent() {
     setIsLoading(true);
     try {
       await signIn(provider, { callbackUrl });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCredentials = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (result?.error) return;
+      window.location.href = callbackUrl;
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +141,49 @@ function AuthPageContent() {
               and use your workspace.
             </p>
 
-            <div className="mt-8 space-y-3">
+            <form onSubmit={handleCredentials} className="mt-8 space-y-3">
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm"
+              />
+              <div className="text-right">
+                <Link
+                  href="/user-auth/forgot-password"
+                  className="text-xs text-violet-400 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading || !password}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 text-sm font-semibold disabled:opacity-50"
+              >
+                Sign in with email
+              </button>
+            </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-zinc-950/80 px-2 text-zinc-500">or</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => handleLogin("google")}
@@ -145,7 +205,10 @@ function AuthPageContent() {
             </div>
 
             <p className="mt-8 text-center text-xs text-zinc-500">
-              By continuing you agree to our terms. No password required.
+              Reseller?{" "}
+              <Link href="/saas/register" className="text-sky-400 hover:underline">
+                Create reseller account
+              </Link>
             </p>
           </motion.div>
         </div>

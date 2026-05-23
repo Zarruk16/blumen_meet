@@ -6,6 +6,11 @@ const meetingSchema = new mongoose.Schema(
     hostKey: { type: String, required: true },
     hostUserId: { type: String },
     hostName: { type: String },
+    resellerId: { type: mongoose.Schema.Types.ObjectId, ref: "Reseller", index: true },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "ResellerCustomer" },
+    duration: { type: Number, default: 0 },
+    participantCount: { type: Number, default: 0 },
+    recordingEnabled: { type: Boolean, default: false },
     ownerUserId: { type: String },
     currentHostUserId: { type: String },
     activeParticipants: [

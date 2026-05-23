@@ -53,6 +53,12 @@ export async function POST(req, { params }) {
 
     meeting.activeParticipantIds = Array.from(current);
 
+    if (action === "leave" && meeting.startedAt && !meeting.duration) {
+      const started = meeting.createdAt;
+      const durationSec = Math.floor((Date.now() - new Date(started)) / 1000);
+      meeting.duration = durationSec;
+    }
+
     let meetingEnded = false;
     if (action === "leave" && meeting.activeParticipantIds.length === 0) {
       meetingEnded = true;
@@ -62,6 +68,13 @@ export async function POST(req, { params }) {
       } else {
         meeting.status = "ended";
         meeting.endedAt = new Date();
+      }
+      if (meeting.resellerId && meeting.duration) {
+        const { trackMeetingDuration } = await import("@/lib/saas/trackUsage");
+        await trackMeetingDuration(
+          meeting.resellerId,
+          Math.ceil(meeting.duration / 60)
+        );
       }
     }
 

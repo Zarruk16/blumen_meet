@@ -7,6 +7,8 @@ const recordingSchema = new mongoose.Schema(
     roomName: { type: String, required: true, index: true },
     hostUserId: { type: String },
     hostName: { type: String },
+    resellerId: { type: mongoose.Schema.Types.ObjectId, ref: "Reseller", index: true },
+    meetingId: { type: String, index: true },
     status: {
       type: String,
       enum: ["starting", "active", "processing", "completed", "failed", "stopped"],

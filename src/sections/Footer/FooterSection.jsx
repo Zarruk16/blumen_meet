@@ -15,7 +15,8 @@ const legal = [
   { label: "Security", href: "#features" },
 ];
 const resources = [
-  { label: "Docs", href: "#docs" },
+  { label: "Docs", href: "/#docs" },
+  { label: "Documentation", href: "/docs" },
   { label: "Contact", href: "#contact" },
   { label: "Recordings", href: "/recordings" },
 ];
@@ -23,7 +24,6 @@ const resources = [
 export function FooterSection() {
   return (
     <footer id="contact" className="border-t border-white/10 bg-zinc-950/80 py-16 sm:py-20">
-      <div id="docs" className="sr-only" aria-hidden />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">

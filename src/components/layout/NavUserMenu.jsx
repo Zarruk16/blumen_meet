@@ -11,8 +11,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Film, LogOut, Moon, Sun, X } from "lucide-react";
+import { Film, LayoutDashboard, LogOut, Moon, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ROLES } from "@/lib/saas/constants";
+import { getDashboardPathForRole } from "@/lib/saas/dashboardPaths";
 
 export function NavUserMenu({ className, onAction }) {
   const { data: session, status } = useSession();
@@ -26,6 +28,12 @@ export function NavUserMenu({ className, onAction }) {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "?";
+
+  const dashboardPath = getDashboardPathForRole(session?.user?.role);
+  const showDashboard =
+    session?.user?.role === ROLES.SUPER_ADMIN ||
+    session?.user?.role === ROLES.RESELLER ||
+    session?.user?.role === ROLES.TEAM_MEMBER;
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -114,6 +122,20 @@ export function NavUserMenu({ className, onAction }) {
             Hi, {session.user?.name?.split(" ")[0] || "there"}!
           </h2>
         </div>
+
+        {showDashboard && (
+          <Link
+            href={dashboardPath}
+            className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 hover:text-white"
+            onClick={() => {
+              setOpen(false);
+              onAction?.();
+            }}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            {session.user?.role === ROLES.SUPER_ADMIN ? "Admin dashboard" : "Dashboard"}
+          </Link>
+        )}
 
         <div className="mb-3 flex gap-2">
           <Link

@@ -12,6 +12,7 @@ import { AISection } from "@/sections/AI/AISection";
 import { ProductPreviewSection } from "@/sections/ProductPreview/ProductPreviewSection";
 import { RecordingsSection } from "@/sections/Recordings/RecordingsSection";
 import { WorkspaceSection } from "@/sections/Workspace/WorkspaceSection";
+import { DocsSection } from "@/sections/Docs/DocsSection";
 import { CTASection } from "@/sections/CTA/CTASection";
 import { FooterSection } from "@/sections/Footer/FooterSection";
 
@@ -28,7 +29,7 @@ export default function Home() {
   useEffect(() => {
     if (status === "authenticated" && typeof window !== "undefined") {
       const hash = window.location.hash;
-      if (hash === "#workspace" || hash === "#recordings") {
+      if (hash === "#workspace" || hash === "#recordings" || hash === "#docs") {
         setTimeout(() => {
           document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -55,6 +56,7 @@ export default function Home() {
           session={session}
           isAuthenticated={status === "authenticated"}
         />
+        <DocsSection />
         <CTASection />
       </main>
       <FooterSection />

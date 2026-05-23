@@ -17,7 +17,7 @@ const NAV = [
   { label: "AI Features", href: "#ai" },
   { label: "Recordings", href: "#recordings" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Docs", href: "#docs" },
+  { label: "Docs", href: "/#docs" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -35,6 +35,15 @@ export function LandingNavbar() {
 
   const scrollTo = (href) => {
     setOpen(false);
+    if (href.startsWith("/")) {
+      const hash = href.includes("#") ? href.split("#")[1] : null;
+      if (hash && window.location.pathname === "/") {
+        document.querySelector(`#${hash}`)?.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+      router.push(href);
+      return;
+    }
     const el = document.querySelector(href);
     el?.scrollIntoView({ behavior: "smooth" });
   };
