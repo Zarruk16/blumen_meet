@@ -1,4 +1,4 @@
-import dbConnect from "@/lib/dbConnect";
+import dbConnect, { dbConnectWithRetry } from "@/lib/dbConnect";
 import User from "@/models/User";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -6,17 +6,18 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/saas/password";
 import { resolveSuperAdminEmail } from "@/lib/saas/permissions";
 import { ROLES } from "@/lib/saas/constants";
-import { createResellerForUser } from "@/lib/saas/resellerService";
 
 export const authOptions = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
+      allowDangerousEmailAccountLinking: true,
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           prompt: "consent",
@@ -81,32 +82,63 @@ export const authOptions = {
     },
     async signIn({ user, profile, account }) {
       try {
-        await dbConnect();
-        const email = (user.email || profile?.email || "").toLowerCase();
+        await dbConnectWithRetry(3);
+        const email = (user?.email || profile?.email || "").trim().toLowerCase();
+        if (!email) {
+          console.error("[signIn] OAuth provider returned no email");
+          return false;
+        }
+
         let dbUser = await User.findOne({ email });
 
+        if (dbUser?.status === "suspended") {
+          console.error("[signIn] Suspended account:", email);
+          return false;
+        }
+
         const isSuperAdmin = resolveSuperAdminEmail(email);
+        const picture =
+          profile?.picture || profile?.avatar_url || user?.image || "";
+        const displayName =
+          profile?.name || user?.name || email.split("@")[0] || "User";
 
         if (!dbUser) {
           dbUser = await User.create({
-            name: profile?.name || user.name || email.split("@")[0],
+            name: displayName,
             email,
-            profilePicture: profile?.picture || user.image || "",
-            avatar: profile?.picture || user.image || "",
-            isVerified: profile?.email_verified ? true : account?.provider !== "credentials",
+            profilePicture: picture,
+            avatar: picture,
+            isVerified: true,
             role: isSuperAdmin ? ROLES.SUPER_ADMIN : ROLES.CUSTOMER,
             status: "active",
           });
-        } else if (isSuperAdmin && dbUser.role !== ROLES.SUPER_ADMIN) {
-          dbUser.role = ROLES.SUPER_ADMIN;
-          await dbUser.save();
+        } else {
+          let changed = false;
+          if (picture && !dbUser.avatar) {
+            dbUser.avatar = picture;
+            dbUser.profilePicture = picture;
+            changed = true;
+          }
+          if (!dbUser.name && displayName) {
+            dbUser.name = displayName;
+            changed = true;
+          }
+          if (isSuperAdmin && dbUser.role !== ROLES.SUPER_ADMIN) {
+            dbUser.role = ROLES.SUPER_ADMIN;
+            changed = true;
+          }
+          if (account?.provider !== "credentials" && !dbUser.isVerified) {
+            dbUser.isVerified = true;
+            changed = true;
+          }
+          if (changed) await dbUser.save();
         }
 
         user.id = dbUser._id.toString();
         user.role = dbUser.role;
         return true;
       } catch (error) {
-        console.error("Error in signIn callback:", error);
+        console.error("[signIn] OAuth sign-in failed:", error?.message || error);
         return false;
       }
     },
@@ -126,6 +158,7 @@ export const authOptions = {
   },
   pages: {
     signIn: "/user-auth",
+    error: "/mobile-oauth-error",
   },
   debug: process.env.NODE_ENV === "development",
 };

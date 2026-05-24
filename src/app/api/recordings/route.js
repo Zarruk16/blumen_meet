@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { verifyMobileToken } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 import dbConnect from "@/lib/dbConnect";
@@ -10,10 +11,26 @@ import {
   getHostRoomIds,
 } from "@/lib/recordingAccess";
 
+async function resolveSessionUser(req) {
+  const session = await getServerSession(authOptions);
+  if (session?.user) {
+    return { id: session.user.id, name: session.user.name || "" };
+  }
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  try {
+    const payload = await verifyMobileToken(token);
+    return { id: payload.id, name: payload.name || "" };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await resolveSessionUser(req);
+    if (!user?.id) {
       return NextResponse.json({ error: "Sign in required" }, { status: 401 });
     }
 
@@ -22,8 +39,8 @@ export async function GET(req) {
 
     await dbConnect();
 
-    const hostUserId = session.user.id || "";
-    const hostName = session.user.name || "";
+    const hostUserId = user.id || "";
+    const hostName = user.name || "";
     const hostRoomIds = await getHostRoomIds(hostUserId, hostName);
 
     const filter = {
