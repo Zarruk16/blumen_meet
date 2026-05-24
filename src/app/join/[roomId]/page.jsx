@@ -18,6 +18,7 @@ import {
 import { toast } from "react-toastify";
 import { LandingBackground } from "@/components/layout/LandingBackground";
 import Loader from "@/app/components/Loader";
+import OpenInAppBanner from "@/components/join/OpenInAppBanner";
 
 function JoinMeetingContent() {
   const params = useParams();
@@ -210,6 +211,7 @@ function JoinMeetingContent() {
       </header>
 
       <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
+        <OpenInAppBanner roomId={roomID} />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
