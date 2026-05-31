@@ -25,15 +25,11 @@ function MobileOAuthDoneContent() {
 
     (async () => {
       try {
-        const res = await fetch("/api/mobile/auth/bridge", { credentials: "include" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Bridge failed");
-
         if (cancelled) return;
-
-        const target = new URL(appRedirect);
-        target.searchParams.set("token", data.token);
-        window.location.replace(target.toString());
+        const completeUrl = `/api/mobile/auth/oauth-complete?${new URLSearchParams({
+          redirect: appRedirect,
+        })}`;
+        window.location.replace(completeUrl);
       } catch (err) {
         if (cancelled) return;
         setFailed(true);

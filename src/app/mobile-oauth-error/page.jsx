@@ -11,12 +11,16 @@ const MESSAGES = {
     "This email is already registered with a different sign-in method. Try email/password on the website first.",
   Configuration:
     "Server auth is misconfigured. Check NEXTAUTH_URL and Google OAuth credentials.",
+  session: "Sign-in session expired. Close this window and try again in the app.",
+  user: "Account not found after sign in. Try registering on the website first.",
+  suspended: "This account is suspended.",
+  bridge: "Could not complete mobile sign in. Try again.",
   Default: "Something went wrong during sign in.",
 };
 
 function MobileOAuthErrorContent() {
   const params = useSearchParams();
-  const error = params.get("error") || "Default";
+  const error = params.get("error") || params.get("reason") || "Default";
   const message = MESSAGES[error] || MESSAGES.Default;
 
   return (

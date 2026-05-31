@@ -145,7 +145,11 @@ export const authOptions = {
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       try {
-        if (new URL(url).origin === new URL(baseUrl).origin) return url;
+        const parsed = new URL(url);
+        const base = new URL(baseUrl);
+        if (parsed.origin === base.origin) return url;
+        // Native app deep link (issued by /api/mobile/auth/oauth-complete)
+        if (parsed.protocol === "blumenmeet:") return url;
       } catch {
         // ignore
       }
