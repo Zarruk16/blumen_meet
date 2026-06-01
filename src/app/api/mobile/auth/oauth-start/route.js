@@ -18,11 +18,24 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const provider = searchParams.get("provider") || "google";
   const appRedirect = searchParams.get("redirect") || DEFAULT_APP_REDIRECT;
+  const fresh = searchParams.get("fresh") !== "0";
 
   const callbackUrl = `${origin}/api/mobile/auth/oauth-complete`;
   const signInUrl = `${origin}/api/auth/signin/${provider}?${new URLSearchParams({
     callbackUrl,
   })}`;
+
+  // Clear any existing web session so Google account picker always shows (not "already signed in").
+  if (fresh) {
+    const resumeUrl = `${origin}/api/mobile/auth/oauth-start?${new URLSearchParams({
+      provider,
+      redirect: appRedirect,
+      fresh: "0",
+    })}`;
+    return NextResponse.redirect(
+      `${origin}/api/auth/signout?${new URLSearchParams({ callbackUrl: resumeUrl })}`
+    );
+  }
 
   const response = NextResponse.redirect(signInUrl);
   response.cookies.set(COOKIE_NAME, appRedirect, {

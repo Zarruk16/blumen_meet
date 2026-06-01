@@ -12,14 +12,17 @@ function baseUrlFromRequest(request) {
   return `${proto}://${host}`;
 }
 
-function successHtml() {
+function successHtml(targetUrl) {
+  const safeJson = JSON.stringify(targetUrl);
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Signed in</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#09090b;color:#a1a1aa;font-family:system-ui,sans-serif;}</style>
 </head>
-<body><p>Signed in — returning to the app…</p></body>
+<body><p>Signed in — returning to the app…</p>
+<script>try{window.location.replace(${safeJson});}catch(e){}</script>
+</body>
 </html>`;
 }
 
@@ -43,8 +46,10 @@ export async function GET(request) {
 
   // Final hop — browser already at redirectUri?token=…; ASWebAuthenticationSession can close.
   if (searchParams.get("mobile") === "1" && searchParams.get("token")) {
+    const appTarget = new URL(appRedirect);
+    appTarget.searchParams.set("token", searchParams.get("token"));
     return clearCookie(
-      new NextResponse(successHtml(), {
+      new NextResponse(successHtml(appTarget.toString()), {
         status: 200,
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       })
