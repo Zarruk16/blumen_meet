@@ -12,47 +12,21 @@ function baseUrlFromRequest(request) {
   return `${proto}://${host}`;
 }
 
-/** HTML fallback when HTTP 302 to a custom scheme is ignored (some iOS WebAuth sessions). */
-function nativeReturnHtml(targetUrl) {
-  const safeJson = JSON.stringify(targetUrl);
-  const safeAttr = targetUrl
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .replace(/</g, "&lt;");
-
+function successHtml() {
   return `<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta http-equiv="refresh" content="0;url=${safeAttr}"/>
-  <title>Opening Blumen Meet</title>
-  <style>
-    body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:1.25rem;background:#09090b;color:#a1a1aa;font-family:system-ui,-apple-system,sans-serif;padding:1.5rem;text-align:center;}
-    a{color:#c4b5fd;font-weight:600;font-size:1rem;text-decoration:none;padding:.75rem 1.25rem;border:1px solid #4c1d95;border-radius:.75rem;}
-  </style>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Signed in</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#09090b;color:#a1a1aa;font-family:system-ui,sans-serif;}</style>
 </head>
-<body>
-  <p>Returning to Blumen Meet…</p>
-  <a id="open" href="${safeAttr}">Open Blumen Meet</a>
-  <script>
-    (function () {
-      var t = ${safeJson};
-      try { window.location.replace(t); } catch (e) {}
-      try { window.location.href = t; } catch (e) {}
-      setTimeout(function () { try { window.location.href = t; } catch (e) {} }, 250);
-      setTimeout(function () { document.getElementById("open").click(); }, 600);
-    })();
-  </script>
-</body>
+<body><p>Signed in — returning to the app…</p></body>
 </html>`;
 }
 
 /**
- * NextAuth callbackUrl target — session → JWT → native app deep link.
- * Prefer HTTP 302 (ASWebAuthenticationSession on iOS). HTML page is fallback for stubborn sessions.
+ * NextAuth callbackUrl target — session → JWT → native app.
+ * iOS: return token on this HTTPS URL (ASWebAuthenticationSession matches redirectUri prefix).
+ * Android: 302 to blumenmeet://auth/callback?token=…
  */
 export async function GET(request) {
   const origin = baseUrlFromRequest(request);
@@ -66,6 +40,16 @@ export async function GET(request) {
     res.cookies.set(COOKIE_NAME, "", { httpOnly: true, secure: true, path: "/", maxAge: 0 });
     return res;
   };
+
+  // Final hop — browser already at redirectUri?token=…; ASWebAuthenticationSession can close.
+  if (searchParams.get("mobile") === "1" && searchParams.get("token")) {
+    return clearCookie(
+      new NextResponse(successHtml(), {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      })
+    );
+  }
 
   try {
     const session = await getServerSession(authOptions);
@@ -83,24 +67,19 @@ export async function GET(request) {
     }
 
     const token = await signMobileToken(user);
-    const target = new URL(appRedirect);
-    target.searchParams.set("token", token);
-    const targetStr = target.toString();
 
-    if (isIOS) {
-      const html = nativeReturnHtml(targetStr);
-      return clearCookie(
-        new NextResponse(html, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-store",
-          },
-        })
-      );
+    // iOS ASWebAuthenticationSession completes on HTTPS URLs, not blumenmeet:// redirects.
+    if (isIOS || appRedirect.startsWith("https://")) {
+      const httpsReturn = `${origin}/api/mobile/auth/oauth-complete?${new URLSearchParams({
+        token,
+        mobile: "1",
+      })}`;
+      return clearCookie(NextResponse.redirect(httpsReturn, 302));
     }
 
-    return clearCookie(NextResponse.redirect(targetStr, 302));
+    const target = new URL(appRedirect);
+    target.searchParams.set("token", token);
+    return clearCookie(NextResponse.redirect(target.toString(), 302));
   } catch (error) {
     console.error("[mobile/auth/oauth-complete]", error);
     return clearCookie(NextResponse.redirect(`${origin}/mobile-oauth-error?reason=bridge`));

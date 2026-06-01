@@ -14,6 +14,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "generate:brand": "node ../mobile-app/scripts/generate-brand-assets.mjs",
+    "sync:brand": "npm run generate:brand",
     "livekit-server": "npm run dev --prefix server",
     "livekit-server:start": "npm run start --prefix server"
   },

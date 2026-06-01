@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 const PROTECTED_PREFIXES = ["/recordings", "/meetings"];
 const ADMIN_PREFIX = "/admin";
 const RESELLER_PREFIX = "/reseller";
+/** Set by /api/mobile/auth/oauth-start during native OAuth — survives lost NextAuth callbackUrl on iOS. */
+const MOBILE_OAUTH_COOKIE = "mobile_app_redirect";
 
 function isProtectedPath(pathname) {
   return PROTECTED_PREFIXES.some(
@@ -18,6 +20,11 @@ function isDashboardPath(pathname) {
 export async function middleware(req) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname, search } = req.nextUrl;
+
+  // Native OAuth on iOS: NextAuth sometimes drops callbackUrl and lands on "/" logged in.
+  if (pathname === "/" && token && req.cookies.get(MOBILE_OAUTH_COOKIE)?.value) {
+    return NextResponse.redirect(new URL("/api/mobile/auth/oauth-complete", req.url));
+  }
 
   if (pathname === "/user-auth" && token) {
     const role = token.role;
@@ -51,6 +58,7 @@ export async function middleware(req) {
 
 export const config = {
   matcher: [
+    "/",
     "/user-auth",
     "/auth/continue",
     "/recordings",
